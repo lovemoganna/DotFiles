@@ -1,4 +1,4 @@
-** bug list - <2025-03-29 Sat 18:39>
+** Ⅰ. Bug Fix List - <2025-03-29 Sat 18:39>
 
 *** bug_1_org-roam
 
