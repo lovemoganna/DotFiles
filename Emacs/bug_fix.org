@@ -17,6 +17,7 @@ Org/orgPkg.el:  (org-roam-directory (file-truename "c:/Users/luoyu/Desktop/machi
 #+CAPTION: fix_result
 #+begin_src emacs-lisp
 ;; ~/.emacs.d/org/org-roam-V2
+;; org/orgPkg.el
 (org-roam-directory (file-truename (expand-file-name "org-roam-v2" (or (getenv "ORG_DIRECTORY") (expand-file-name ".emacs.d/org-roam" (getenv "HOME"))))))
 #+end_src
 
@@ -24,17 +25,18 @@ Org/orgPkg.el:  (org-roam-directory (file-truename "c:/Users/luoyu/Desktop/machi
 
 #+CAPTION: fix_result
 #+begin_src emacs-lisp
-  (defconst revolt/org-font-specs
-    `((org-document-title     "Noto Sans SC"      ,(* revolt/default-font-size 1.5) regular "honeydew")
-      (org-level-1            "Noto Sans SC"      ,(* revolt/default-font-size 1.4) bold "#ffc7ff")
-      (org-level-2            "Noto Sans SC"      ,(* revolt/default-font-size 1.3) normal "#00E5FF")
-      (org-level-3            "Noto Sans SC"      ,(* revolt/default-font-size 1.2) normal "#c2ffb0")
-      (org-level-4            "Cascadia Mono"     ,(* revolt/default-font-size 1.1) normal "#BBDED6")
-      (org-level-5            "iA Writer Mono S"  ,revolt/default-font-size normal nil)
-      (org-block-begin-line   "Cairo"      ,(* revolt/default-font-size 0.95) normal nil)
-      (org-block-end-line     "Cairo"      ,(* revolt/default-font-size 0.95) normal nil)
-      (org-block              "Victor Mono"       ,(* revolt/default-font-size 0.9) normal nil))
-    "Org Mode 专用字体规格.
+;; package/baseFont.el
+(defconst revolt/org-font-specs
+  `((org-document-title     "Noto Sans SC"      ,(* revolt/default-font-size 1.5) regular "honeydew")
+    (org-level-1            "Noto Sans SC"      ,(* revolt/default-font-size 1.4) bold "#ffc7ff")
+    (org-level-2            "Noto Sans SC"      ,(* revolt/default-font-size 1.3) normal "#00E5FF")
+    (org-level-3            "Noto Sans SC"      ,(* revolt/default-font-size 1.2) normal "#c2ffb0")
+    (org-level-4            "Cascadia Mono"     ,(* revolt/default-font-size 1.1) normal "#BBDED6")
+    (org-level-5            "iA Writer Mono S"  ,revolt/default-font-size normal nil)
+    (org-block-begin-line   "Cairo"      ,(* revolt/default-font-size 0.95) normal nil)
+    (org-block-end-line     "Cairo"      ,(* revolt/default-font-size 0.95) normal nil)
+    (org-block              "Victor Mono"       ,(* revolt/default-font-size 0.9) normal nil))
+  "Org Mode 专用字体规格.
 格式: (face-name font-family font-size weight color)")
 #+end_src
 
