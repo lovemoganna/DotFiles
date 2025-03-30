@@ -1,0 +1,900 @@
+新功能增加
+
+
+*** Org Agenda
+
+#+begin_src emacs-lisp
+(defvar my-org-agenda-root-dir "~/.emacs.d/.org"
+  "Org agenda 文件的根目录。")
+
+(defvar my-org-agenda-presets
+  `(("default" . (,(concat my-org-agenda-root-dir "/work.org") ,(concat my-org-agenda-root-dir "/personal.org")))
+    ("work" . (,(concat my-org-agenda-root-dir "/work.org") ,(concat my-org-agenda-root-dir "/projects.org")))
+    ("personal" . (,(concat my-org-agenda-root-dir "/personal.org") ,(concat my-org-agenda-root-dir "notes/organizer.org")))
+    ("all" . nil)) ; nil 表示会使用动态扫描
+  "预设的 org-agenda-files 列表。")
+
+(defvar my-current-org-agenda-preset "default"
+  "当前活跃的 org-agenda 预设名称。")
+
+(defvar my-org-presets-file (concat user-emacs-directory "org-presets.el")
+  "保存预设配置的文件位置")
+
+(defvar my-org-preset-agenda-views
+  '(("default" . ((day "d" "日报" ((agenda "" ((org-agenda-span 'day) (org-agenda-start-day nil) (org-agenda-prefix-format '((agenda . " %i %-12:c [%e] ")))))))
+                  (week "w" "周报" ((agenda "" ((org-agenda-span 'week) (org-agenda-start-day nil)))))
+                  (month "m" "月报" ((agenda "" ((org-agenda-span 'month) (org-agenda-start-day nil)))))
+                  (all "a" "任务清单" ((agenda "" ((org-agenda-span 3) (org-agenda-start-day "-1d"))) (todo "TODO" ((org-agenda-overriding-header "未完成任务")))))))
+    ("work" . ((day "d" "工作日报" ((agenda "" ((org-agenda-span 'day) (org-agenda-start-day nil) (org-agenda-tag-filter-preset '("+work"))))))
+               (week "w" "工作周报" ((agenda "" ((org-agenda-span 'week) (org-agenda-start-day nil) (org-agenda-tag-filter-preset '("+work"))))))
+               (projects "p" "项目报告" ((tags-todo "project+LEVEL=2" ((org-agenda-overriding-header "项目列表")))))
+               (deadlines "l" "DDL" ((agenda "" ((org-agenda-time-grid nil) (org-deadline-warning-days 14) (org-agenda-entry-types '(:deadline)) (org-agenda-overriding-header "即将到期任务")))))))
+    ("personal" . ((day "d" "个人日报" ((agenda "" ((org-agenda-span 'day) (org-agenda-start-day nil) (org-agenda-tag-filter-preset '("+personal"))))))
+                   (week "w" "个人周报" ((agenda "" ((org-agenda-span 'week) (org-agenda-start-day nil) (org-agenda-tag-filter-preset '("+personal"))))))
+                   (habits "h" "习惯追踪" ((agenda "" ((org-agenda-span 'week) (org-agenda-start-day nil) (org-agenda-show-all-dates t) (org-agenda-time-grid nil) (org-habit-show-habits t) (org-agenda-skip-function '(org-agenda-skip-entry-if 'notregexp ":habit:")) (org-agenda-overriding-header "习惯追踪")))))
+                   (goals "g" "目标回顾" ((tags "goal" ((org-agenda-overriding-header "个人目标")))))))
+    ("all" . ((day "d" "所有日报" ((agenda "" ((org-agenda-span 'day) (org-agenda-start-day nil)))))
+              (week "w" "所有周报" ((agenda "" ((org-agenda-span 'week) (org-agenda-start-day nil)))))
+              (alltags "t" "所有标签" ((tags ".") (org-agenda-prefix-format '((tags . "  "))) (org-tags-match-list-sublevels t))))))
+  "每个预设关联的特定 agenda 视图配置。")
+
+(defvar my-current-agenda-view "day"
+  "当前活跃的 agenda 视图名称。")
+
+
+;;; org-preset-core.el --- Core functions for org agenda presets
+
+(defun my-activate-org-agenda-preset (&optional preset)
+  "激活预设的 org-agenda-files 列表。
+如果 PRESET 是 nil 或 \"all\"，则使用动态扫描。"
+  (interactive
+   (list (completing-read "选择预设: " (mapcar #'car my-org-agenda-presets))))
+
+  (let ((files (cdr (assoc preset my-org-agenda-presets))))
+    (cond
+     ((or (null preset) (string= preset "all") (null files))
+      (setq org-agenda-files
+            (directory-files-recursively my-org-agenda-root-dir "\\.org$"))
+      (setq my-current-org-agenda-preset "all"))
+     (t
+      (setq org-agenda-files files)
+      (setq my-current-org-agenda-preset preset)))
+
+    (my-update-preset-agenda-commands) ; 假设这个函数在 agenda views 模块中定义
+    (message "已激活 %s org-agenda-files 预设" my-current-org-agenda-preset)))
+
+
+;;; org-agenda-views.el --- Agenda view management for org presets
+
+(defun my-update-preset-agenda-commands ()
+  "根据当前活跃的预设更新 org-agenda-custom-commands。"
+  (let* ((preset-view-configs (cdr (assoc my-current-org-agenda-preset my-org-preset-agenda-views)))
+         (commands nil))
+    (when preset-view-configs
+      (dolist (view-config preset-view-configs)
+        (let ((view-name (car view-config))
+              (view-key (cadr view-config))
+              (view-desc (caddr view-config))
+              (view-def (cadddr view-config)))
+          (push (list view-key
+                      (format "%s [%s]" view-desc my-current-org-agenda-preset)
+                      view-def)
+                commands)))
+      (setq commands (nreverse commands))
+      (setq org-agenda-custom-commands commands)
+      (setq my-current-agenda-view (symbol-name (caar preset-view-configs))))))
+
+(defun my-show-preset-agenda (&optional arg)
+  "显示当前预设的 agenda 视图。
+如果有 ARG 前缀参数，会先让用户选择预设视图。"
+  (interactive "P")
+  (let* ((preset-views (cdr (assoc my-current-org-agenda-preset my-org-preset-agenda-views)))
+         (view-choices (mapcar (lambda (view)
+                                 (cons (format "%s (%s)" (caddr view) (car view))
+                                       (symbol-name (car view))))
+                               preset-views))
+         (view-name (if arg
+                        (cdr (assoc (completing-read "选择视图: " view-choices nil t) view-choices))
+                      my-current-agenda-view))
+         (view-symbol (intern view-name))
+         (view-config (assoc view-symbol preset-views)))
+    (if (not view-config)
+        (message "没有找到预设视图: %s" view-name)
+      (let ((view-key (cadr view-config))
+            (org-agenda-custom-commands-orig org-agenda-custom-commands))
+        (my-update-preset-agenda-commands)
+        (org-agenda nil view-key)
+        (setq my-current-agenda-view view-name)))))
+
+(defun my-edit-preset-agenda-view ()
+  "编辑当前预设的 agenda 视图设置。"
+  (interactive)
+  (let* ((preset-name my-current-org-agenda-preset)
+         (preset-views (cdr (assoc preset-name my-org-preset-agenda-views)))
+         (buf (get-buffer-create "*Edit Org Agenda Views*")))
+    (with-current-buffer buf
+      (erase-buffer)
+      (emacs-lisp-mode)
+      (insert (format ";; %s 预设的 Agenda 视图配置\n\n" preset-name))
+      (insert "(setq my-preset-views\n  '(\n")
+      (dolist (view preset-views)
+        (let ((view-name (car view))
+              (view-key (cadr view))
+              (view-desc (caddr view))
+              (view-def (cadddr view)))
+          (insert (format "    (%S %S %S\n      %S)\n\n"
+                          view-name view-key view-desc view-def))))
+      (insert "  ))\n\n")
+      (insert ";; 编辑配置后，执行下面的代码应用更改:\n")
+      (insert ";; (my-apply-edited-agenda-views)\n\n")
+      (goto-char (point-min))
+      (font-lock-ensure))
+    (switch-to-buffer buf)
+    (defun my-apply-edited-agenda-views ()
+      "应用编辑后的 agenda 视图配置。"
+      (interactive)
+      (eval-defun (point-min))
+      (when (boundp 'my-preset-views)
+        (let ((preset-assoc (assoc preset-name my-org-preset-agenda-views)))
+          (setcdr preset-assoc my-preset-views)
+          (my-update-preset-agenda-commands)
+          (message "已更新 %s 预设的 agenda 视图配置" preset-name))))
+    (use-local-map (copy-keymap emacs-lisp-mode-map))
+    (local-set-key (kbd "C-c C-c") 'my-apply-edited-agenda-views)))
+
+(defun my-create-agenda-view ()
+  "为当前预设创建新的 agenda 视图。"
+  (interactive)
+  (let* ((preset-name my-current-org-agenda-preset)
+         (preset-views (cdr (assoc preset-name my-org-preset-agenda-views)))
+         (view-name (read-string "视图标识 (如 'week', 'projects'): "))
+         (view-key (read-string "键绑定 (单个字符): " nil nil (substring view-name 0 1)))
+         (view-desc (read-string "视图描述: " (capitalize view-name)))
+         (buf (get-buffer-create "*Create Agenda View*")))
+    (when (string-empty-p view-name) (user-error "视图标识不能为空"))
+    (when (string-empty-p view-key) (user-error "键绑定不能为空"))
+    (when (> (length view-key) 1) (user-error "键绑定必须是单个字符"))
+    (setq view-name (intern view-name))
+    (when (assoc view-name preset-views)
+      (if (yes-or-no-p (format "视图 '%s' 已存在，是否覆盖？" view-name))
+          (setq preset-views (delq (assoc view-name preset-views) preset-views))
+        (user-error "已取消创建视图")))
+    (with-current-buffer buf
+      (erase-buffer)
+      (emacs-lisp-mode)
+      (insert (format ";; 为 %s 预设创建新的 '%s' 视图\n\n" preset-name view-name))
+      (insert "(setq my-new-view\n  '(")
+      (insert (format "%S %S %S\n    (" view-name view-key view-desc))
+      (insert "(agenda \"\" ((org-agenda-span 'day)\n")
+      (insert "             (org-agenda-start-day nil)))\n")
+      (insert ")))\n\n")
+      (insert ";; 编辑配置后，执行下面的代码应用新视图:\n")
+      (insert ";; (my-apply-new-agenda-view)\n\n")
+      (goto-char (point-min))
+      (font-lock-ensure))
+    (switch-to-buffer buf)
+    (defun my-apply-new-agenda-view ()
+      "应用新创建的 agenda 视图。"
+      (interactive)
+      (eval-defun (point-min))
+      (when (boundp 'my-new-view)
+        (let ((preset-assoc (assoc preset-name my-org-preset-agenda-views)))
+          (unless preset-assoc
+            (push (cons preset-name nil) my-org-preset-agenda-views)
+            (setq preset-assoc (assoc preset-name my-org-preset-agenda-views)))
+          (setcdr preset-assoc (cons my-new-view (cdr preset-assoc)))
+          (my-update-preset-agenda-commands)
+          (message "已为 %s 预设添加新的 agenda 视图 '%s'" preset-name view-name))))
+    (use-local-map (copy-keymap emacs-lisp-mode-map))
+    (local-set-key (kbd "C-c C-c") 'my-apply-new-agenda-view)))
+
+(defun my-delete-agenda-view ()
+  "删除当前预设的一个 agenda 视图。"
+  (interactive)
+  (let* ((preset-name my-current-org-agenda-preset)
+         (preset-views (cdr (assoc preset-name my-org-preset-agenda-views)))
+         (view-choices (mapcar (lambda (view)
+                                 (cons (format "%s (%s)" (caddr view) (car view))
+                                       (symbol-name (car view))))
+                               preset-views)))
+    (if (null preset-views)
+        (message "当前预设没有关联的 agenda 视图")
+      (let* ((selected (completing-read "选择要删除的视图: " view-choices nil t))
+             (view-name (cdr (assoc selected view-choices)))
+             (view-symbol (intern view-name))
+             (preset-assoc (assoc preset-name my-org-preset-agenda-views)))
+        (setcdr preset-assoc (delq (assoc view-symbol preset-views) (cdr preset-assoc)))
+        (my-update-preset-agenda-commands)
+        (message "已从 %s 预设删除 agenda 视图 '%s'" preset-name view-name)))))
+
+;;; org-preset-persistence.el --- Persistence functions for org presets
+
+(defun my-save-org-presets ()
+  "将当前的预设配置保存到文件。"
+  (interactive)
+  (with-temp-file my-org-presets-file
+    (let ((print-length nil) (print-level nil))
+      (prin1 `(progn
+                (setq my-org-agenda-presets ',my-org-agenda-presets
+                      my-current-org-agenda-preset ,my-current-org-agenda-preset
+                      my-org-preset-agenda-views ',my-org-preset-agenda-views
+                      my-current-agenda-view ,my-current-agenda-view))
+             (current-buffer))))
+  (message "已保存 org 预设配置"))
+
+(defun my-load-org-presets ()
+  "从文件加载预设配置。"
+  (interactive)
+  (when (file-exists-p my-org-presets-file)
+    (load-file my-org-presets-file)
+    (my-activate-org-agenda-preset my-current-org-agenda-preset)
+    (message "已加载 org 预设配置")))
+
+(add-hook 'kill-emacs-hook 'my-save-org-presets)
+
+;;; org-preset-management.el --- Preset management functions for org
+
+(defun my-create-preset ()
+  "创建一个新的 org-agenda-files 预设。"
+  (interactive)
+  (let* ((preset-name (read-string "输入新预设名称: "))
+         (existing (assoc preset-name my-org-agenda-presets)))
+    (when (string-empty-p preset-name) (user-error "预设名称不能为空"))
+    (when existing
+      (if (yes-or-no-p (format "预设'%s'已存在，是否覆盖? " preset-name))
+          (setq my-org-agenda-presets (delq existing my-org-agenda-presets))
+        (user-error "已取消创建预设")))
+    (add-to-list 'my-org-agenda-presets (cons preset-name nil))
+    (unless (assoc preset-name my-org-preset-agenda-views)
+      (push (cons preset-name
+                  '((day "d" "默认日视图"
+                         ((agenda "" ((org-agenda-span 'day)
+                                      (org-agenda-start-day nil)))))))
+            my-org-preset-agenda-views))
+    (setq my-current-org-agenda-preset preset-name)
+    (setq org-agenda-files nil)
+    (my-update-preset-agenda-commands)
+    (message "已创建空预设'%s'，请添加文件" preset-name)))
+
+(defun my-delete-preset ()
+  "删除一个 org-agenda-files 预设。"
+  (interactive)
+  (let* ((presets (mapcar #'car my-org-agenda-presets))
+         (preset-name (completing-read "选择要删除的预设: " presets nil t))
+         (preset-assoc (assoc preset-name my-org-agenda-presets)))
+    (when (or (string= preset-name "all") (string= preset-name "default"))
+      (unless (yes-or-no-p (format "预设'%s'是内置预设，确定要删除吗? " preset-name))
+        (user-error "已取消删除预设")))
+    (setq my-org-agenda-presets (delq preset-assoc my-org-agenda-presets))
+    (setq my-org-preset-agenda-views
+          (delq (assoc preset-name my-org-preset-agenda-views) my-org-preset-agenda-views))
+    (when (string= my-current-org-agenda-preset preset-name)
+      (my-activate-org-agenda-preset "default"))
+    (message "已删除预设'%s'" preset-name)))
+
+(defun my-rename-preset ()
+  "重命名当前 org-agenda-files 预设。"
+  (interactive)
+  (if (string= my-current-org-agenda-preset "all")
+      (message "无法重命名'all'预设，它是内置的。")
+    (let* ((old-name my-current-org-agenda-preset)
+           (new-name (read-string (format "将预设'%s'重命名为: " old-name)))
+           (preset-assoc (assoc old-name my-org-agenda-presets))
+           (files (cdr preset-assoc))
+           (views-assoc (assoc old-name my-org-preset-agenda-views))
+           (views (cdr views-assoc)))
+      (when (string-empty-p new-name) (user-error "预设名称不能为空"))
+      (when (assoc new-name my-org-agenda-presets) (user-error "预设'%s'已存在" new-name))
+      (setq my-org-agenda-presets (delq preset-assoc my-org-agenda-presets))
+      (add-to-list 'my-org-agenda-presets (cons new-name files))
+      (when views-assoc
+        (setq my-org-preset-agenda-views (delq views-assoc my-org-preset-agenda-views))
+        (add-to-list 'my-org-preset-agenda-views (cons new-name views)))
+      (setq my-current-org-agenda-preset new-name)
+      (my-update-preset-agenda-commands)
+      (message "已将预设'%s'重命名为'%s'" old-name new-name))))
+
+(defun my-duplicate-preset ()
+  "复制当前预设为新预设。"
+  (interactive)
+  (if (string= my-current-org-agenda-preset "all")
+      (message "无法复制'all'预设，它使用动态扫描。")
+    (let* ((current-preset my-current-org-agenda-preset)
+           (current-files (cdr (assoc current-preset my-org-agenda-presets)))
+           (current-views (cdr (assoc current-preset my-org-preset-agenda-views)))
+           (new-name (read-string (format "将预设'%s'复制为: " current-preset))))
+      (when (string-empty-p new-name) (user-error "预设名称不能为空"))
+      (when (assoc new-name my-org-agenda-presets)
+        (if (yes-or-no-p (format "预设'%s'已存在，是否覆盖? " new-name))
+            (progn
+              (setq my-org-agenda-presets
+                    (delq (assoc new-name my-org-agenda-presets) my-org-agenda-presets))
+              (setq my-org-preset-agenda-views
+                    (delq (assoc new-name my-org-preset-agenda-views) my-org-preset-agenda-views)))
+          (user-error "已取消复制预设")))
+      (add-to-list 'my-org-agenda-presets (cons new-name (copy-sequence current-files)))
+      (when current-views
+        (add-to-list 'my-org-preset-agenda-views (cons new-name (copy-tree current-views))))
+      (message "已将预设'%s'复制为'%s'" current-preset new-name))))
+
+
+;;; org-file-management.el --- File management functions for org presets
+
+(define-derived-mode my-org-files-list-mode tabulated-list-mode "Org Files"
+  "Major mode for listing and managing org files in presets."
+  (setq tabulated-list-format
+        [("文件名" 30 t)
+         ("路径" 40 t)
+         ("大小" 10 t)
+         ("修改时间" 20 t)
+         ("状态" 10 t)])
+  (setq tabulated-list-padding 2)
+  (setq tabulated-list-sort-key '("文件名" . nil))
+  (tabulated-list-init-header))
+
+(defvar-local my-org-files-list-preset nil
+  "当前显示的预设名称")
+
+(defun my-list-preset-files ()
+  "交互式显示当前预设包含的文件列表，支持排序和操作。"
+  (interactive)
+  (let* ((preset my-current-org-agenda-preset)
+         (files (if (string= preset "all")
+                    (directory-files-recursively my-org-agenda-root-dir "\\.org$")
+                  (cdr (assoc preset my-org-agenda-presets))))
+         (buf (get-buffer-create "*Org Agenda Files*")))
+    (with-current-buffer buf
+      (my-org-files-list-mode)
+      (setq-local my-org-files-list-preset preset)
+      (let ((data (mapcar (lambda (file)
+                            (let* ((attrs (file-attributes file))
+                                   (exists (file-exists-p file))
+                                   (size (if exists (file-size-human-readable (file-attribute-size attrs)) "N/A"))
+                                   (mtime (if exists
+                                              (format-time-string "%Y-%m-%d %H:%M:%S" (file-attribute-modification-time attrs))
+                                            "N/A"))
+                                   (status (if exists "存在" (propertize "不存在" 'face 'error)))
+                                   (name (file-name-nondirectory file))
+                                   (dir (file-name-directory file)))
+                              (list file
+                                    (vector
+                                     (propertize name 'face 'font-lock-keyword-face)
+                                     (propertize dir 'face 'font-lock-comment-face)
+                                     size
+                                     mtime
+                                     status))))
+                          files)))
+        (setq tabulated-list-entries data)
+        (if (null files)
+            (message "当前预设 '%s' 没有关联文件" preset)
+          (tabulated-list-print t)))
+      (use-local-map (copy-keymap tabulated-list-mode-map))
+      (local-set-key (kbd "RET") 'my-org-files-list-open)
+      (local-set-key (kbd "d") 'my-org-files-list-delete)
+      (local-set-key (kbd "r") 'my-org-files-list-remove)
+      (local-set-key (kbd "a") 'my-org-files-list-add)
+      (local-set-key (kbd "g") 'my-org-files-list-refresh)
+      (local-set-key (kbd "t") 'my-org-files-list-tags)
+      (setq header-line-format
+            (substitute-command-keys
+             "\\<my-org-files-list-mode-map>\\[my-org-files-list-open]:打开 \
+\\[my-org-files-list-delete]:删除 \
+\\[my-org-files-list-remove]:移除 \
+\\[my-org-files-list-add]:添加 \
+\\[my-org-files-list-refresh]:刷新 \
+\\[my-org-files-list-tags]:标签")))
+    (switch-to-buffer buf)))
+
+(defun my-org-files-list-open ()
+  "打开当前选中的文件。"
+  (interactive)
+  (let ((file (tabulated-list-get-id)))
+    (if (file-exists-p file)
+        (find-file file)
+      (message "文件不存在： %s" file))))
+
+(defun my-org-files-list-delete ()
+  "删除当前选中的文件（从磁盘）。"
+  (interactive)
+  (let ((file (tabulated-list-get-id)))
+    (when (and (file-exists-p file)
+               (yes-or-no-p (format "确定要删除文件 %s ?" (file-name-nondirectory file))))
+      (delete-file file)
+      (my-org-files-list-refresh)
+      (message "已删除文件： %s" file))))
+
+(defun my-org-files-list-remove ()
+  "从当前预设中移除文件（不删除文件本身）。"
+  (interactive)
+  (let ((file (tabulated-list-get-id))
+        (preset my-org-files-list-preset))
+    (if (string= preset "all")
+        (message "无法从'all'预设移除文件，它使用动态扫描。")
+      (let ((preset-assoc (assoc preset my-org-agenda-presets)))
+        (setcdr preset-assoc (delete file (cdr preset-assoc)))
+        (when (string= preset my-current-org-agenda-preset)
+          (setq org-agenda-files (cdr preset-assoc)))
+        (my-org-files-list-refresh)
+        (message "已从 %s 预设中移除 %s" preset file)))))
+
+(defun my-org-files-list-add ()
+  "向当前预设添加文件。"
+  (interactive)
+  (let ((preset my-org-files-list-preset))
+    (if (string= preset "all")
+        (message "无法向'all'预设添加文件，它使用动态扫描。")
+      (let* ((file (read-file-name "选择要添加的 Org 文件: " my-org-agenda-root-dir nil t nil
+                                   (lambda (f) (or (file-directory-p f) (string-match-p "\\.org$" f)))))
+             (preset-assoc (assoc preset my-org-agenda-presets))
+             (files (cdr preset-assoc)))
+        (setq file (expand-file-name file))
+        (if (and (file-exists-p file) (member file files))
+            (message "文件 %s 已在预设中" file)
+          (when (or (file-exists-p file)
+                    (yes-or-no-p (format "文件 %s 不存在，是否仍要添加？" file)))
+            (setcdr preset-assoc (cons file files))
+            (when (string= preset my-current-org-agenda-preset)
+              (setq org-agenda-files (cdr preset-assoc)))
+            (my-org-files-list-refresh)
+            (message "已添加 %s 到 %s 预设" file preset)))))))
+
+(defun my-org-files-list-refresh ()
+  "刷新文件列表。"
+  (interactive)
+  (let ((preset my-org-files-list-preset))
+    (my-list-preset-files)))
+
+(defun my-org-files-list-tags ()
+  "查看并编辑当前选中文件的标签。"
+  (interactive)
+  (let ((file (tabulated-list-get-id)))
+    (if (not (file-exists-p file))
+        (message "文件不存在： %s" file)
+      (find-file file)
+      (goto-char (point-min))
+      (if (re-search-forward "^#\\+FILETAGS:" nil t)
+          (progn
+            (message "找到 FILETAGS 行，按 C-c C-c 更新标签")
+            (end-of-line))
+        (progn
+          (goto-char (point-min))
+          (if (re-search-forward "^#\\+TITLE:" nil t)
+              (progn
+                (end-of-line)
+                (insert "\n#+FILETAGS: ")
+                (message "已创建 FILETAGS 行，请添加标签"))
+            (progn
+              (goto-char (point-min))
+              (insert "#+FILETAGS: \n\n")
+              (goto-char (point-min))
+              (end-of-line)
+              (message "已创建 FILETAGS 行，请添加标签"))))))))
+
+(defun my-add-file-to-preset ()
+  "添加一个文件到当前预设的 org-agenda-files 列表中。"
+  (interactive)
+  (if (string= my-current-org-agenda-preset "all")
+      (message "无法添加文件到'all'预设，它使用动态扫描。")
+    (let* ((file (read-file-name "选择要添加的 Org 文件: " my-org-agenda-root-dir nil t nil
+                                 (lambda (f) (or (file-directory-p f) (string-match-p "\\.org$" f)))))
+           (preset-assoc (assoc my-current-org-agenda-preset my-org-agenda-presets))
+           (files (cdr preset-assoc)))
+      (setq file (expand-file-name file))
+      (unless (file-exists-p file) (user-error "文件 %s 不存在" file))
+      (unless (string-match-p "\\.org$" file) (user-error "必须选择 .org 文件"))
+      (if (member file files)
+          (message "文件 %s 已在预设中" file)
+        (setcdr preset-assoc (cons file files))
+        (setq org-agenda-files (cdr preset-assoc))
+        (message "已添加 %s 到 %s 预设" file my-current-org-agenda-preset)))))
+
+(defun my-remove-file-from-preset ()
+  "从当前预设的 org-agenda-files 列表中删除一个文件。"
+  (interactive)
+  (if (string= my-current-org-agenda-preset "all")
+      (message "无法从'all'预设删除文件，它使用动态扫描。")
+    (let* ((preset-assoc (assoc my-current-org-agenda-preset my-org-agenda-presets))
+           (files (cdr preset-assoc)))
+      (if (null files)
+          (message "当前预设没有关联文件")
+        (let ((file (completing-read "选择要删除的文件: " files nil t)))
+          (setcdr preset-assoc (delete file files))
+          (setq org-agenda-files (cdr preset-assoc))
+          (message "已从 %s 预设中删除 %s" my-current-org-agenda-preset file))))))
+
+;;; org-extended-features.el --- Extended features for org presets
+#+end_src
+
+*** Org Capture
+
+#+begin_src emacs-lisp
+(require 'org-capture)
+
+(defun my-org-capture-to-current-preset ()
+  "快速捕获到当前预设的第一个文件。"
+  (interactive)
+  (let ((files (if (string= my-current-org-agenda-preset "all")
+                   (directory-files-recursively my-org-agenda-root-dir "\\.org$")
+                 (cdr (assoc my-current-org-agenda-preset my-org-agenda-presets)))))
+    (if (null files)
+        (message "当前预设没有关联文件，无法捕获")
+      (let ((org-default-notes-file (car files)))
+        (org-capture)))))
+
+(defun my-find-file-in-preset ()
+  "打开当前预设中的文件。"
+  (interactive)
+  (let ((files (if (string= my-current-org-agenda-preset "all")
+                   (directory-files-recursively my-org-agenda-root-dir "\\.org$")
+                 (cdr (assoc my-current-org-agenda-preset my-org-agenda-presets)))))
+    (if (null files)
+        (message "当前预设没有关联文件")
+      (find-file (completing-read "选择文件: " files nil t)))))
+
+(defun my-refresh-all-preset ()
+  "刷新'all'预设，重新扫描目录。"
+  (interactive)
+  (when (string= my-current-org-agenda-preset "all")
+    (setq org-agenda-files
+          (directory-files-recursively my-org-agenda-root-dir "\\.org$"))
+    (message "已刷新'all'预设文件列表")))
+
+(defun my-export-preset ()
+  "将当前预设导出到文件。"
+  (interactive)
+  (let* ((preset-name my-current-org-agenda-preset)
+         (preset-data (assoc preset-name my-org-agenda-presets))
+         (views-data (assoc preset-name my-org-preset-agenda-views))
+         (export-file (read-file-name
+                       (format "选择导出预设'%s'的保存位置: " preset-name)
+                       default-directory
+                       (concat preset-name "-preset.el"))))
+    (with-temp-file export-file
+      (let ((print-length nil) (print-level nil))
+        (prin1 `(progn
+                  (defvar exported-preset ',preset-data
+                    ,(format "从 %s 的 Emacs 配置导出的 org-agenda 预设数据。" (system-name)))
+                  (defvar exported-views ',views-data
+                    ,(format "从 %s 的 Emacs 配置导出的 org-agenda 预设视图。" (system-name))))
+               (current-buffer))))
+    (message "预设'%s'及其视图已导出到 %s" preset-name export-file)))
+
+(defun my-import-preset ()
+  "从文件导入预设。"
+  (interactive)
+  (let ((import-file (read-file-name "选择要导入的预设文件: " default-directory nil t)))
+    (when (file-exists-p import-file)
+      (load-file import-file)
+      (when (boundp 'exported-preset)
+        (let* ((preset-name (car exported-preset))
+               (existing (assoc preset-name my-org-agenda-presets)))
+          (when existing
+            (if (yes-or-no-p (format "预设'%s'已存在，是否覆盖? " preset-name))
+                (setq my-org-agenda-presets (delq existing my-org-agenda-presets))
+              (setq preset-name (read-string "请为导入的预设提供新名称: "))))
+          (add-to-list 'my-org-agenda-presets (cons preset-name (cdr exported-preset)))
+          (when (boundp 'exported-views)
+            (let ((view-name (car exported-views))
+                  (existing-view (assoc preset-name my-org-preset-agenda-views)))
+              (when existing-view
+                (setq my-org-preset-agenda-views (delq existing-view my-org-preset-agenda-views)))
+              (add-to-list 'my-org-preset-agenda-views (cons preset-name (cdr exported-views)))))
+          (message "已导入预设'%s'及其视图" preset-name))))))
+
+(defun my-org-batch-tag-files ()
+  "为当前预设中的所有 Org 文件批量添加标签。"
+  (interactive)
+  (let* ((files (if (string= my-current-org-agenda-preset "all")
+                    (directory-files-recursively my-org-agenda-root-dir "\\.org$")
+                  (cdr (assoc my-current-org-agenda-preset my-org-agenda-presets))))
+         (tag (read-string "输入要添加的标签 (不含冒号): "))
+         (count 0))
+    (when (string-empty-p tag) (user-error "标签不能为空"))
+    (dolist (file files)
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (goto-char (point-min))
+          (if (re-search-forward "^#\\+FILETAGS:" nil t)
+              (progn
+                (end-of-line)
+                (insert " " tag)
+                (save-buffer)
+                (setq count (1+ count)))
+            (goto-char (point-min))
+            (insert (format "#+FILETAGS: %s\n\n" tag))
+            (save-buffer)
+            (setq count (1+ count)))))
+      (message "已在 %d 个文件中添加标签 :%s:" count tag))))
+
+(defun my-show-preset-stats ()
+  "显示当前预设的统计信息。"
+  (interactive)
+  (let* ((preset my-current-org-agenda-preset)
+         (files (if (string= preset "all")
+                    (directory-files-recursively my-org-agenda-root-dir "\\.org$")
+                  (cdr (assoc preset my-org-agenda-presets))))
+         (file-count (length files))
+         (task-counts (make-hash-table :test 'equal))
+         (tag-counts (make-hash-table :test 'equal))
+         (total-tasks 0)
+         (buf (get-buffer-create "*Org Preset Stats*")))
+    (dolist (file files)
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-map-entries
+           (lambda ()
+             (let ((todo-state (org-get-todo-state)))
+               (when todo-state
+                 (setq total-tasks (1+ total-tasks))
+                 (puthash todo-state (1+ (gethash todo-state task-counts 0)) task-counts)))
+             (let ((tags (org-get-tags)))
+               (dolist (tag tags)
+                 (puthash tag (1+ (gethash tag tag-counts 0)) tag-counts))))))))
+    (with-current-buffer buf
+      (erase-buffer)
+      (org-mode)
+      (insert (format "#+TITLE: %s 预设统计\n\n" preset))
+      (insert "* 文件信息\n\n")
+      (insert (format "- 文件数量: %d\n" file-count))
+      (when (> file-count 0)
+        (insert "- 文件列表:\n")
+        (dolist (file files)
+          (let ((exists (file-exists-p file)))
+            (insert (format "  - %s %s\n"
+                            (file-name-nondirectory file)
+                            (if exists "" "(不存在)"))))))
+      (insert "\n* 任务统计\n\n")
+      (insert (format "- 总任务数: %d\n\n" total-tasks))
+      (insert "| 状态 | 数量 | 百分比 |\n")
+      (insert "|------+------+--------|\n")
+      (maphash (lambda (state count)
+                 (insert (format "| %s | %d | %.1f%% |\n"
+                                 state count (* 100.0 (/ (float count) total-tasks)))))
+               task-counts)
+      (insert "\n* 标签统计\n\n")
+      (insert "| 标签 | 使用次数 |\n")
+      (insert "|------+----------|\n")
+      (let ((tags-list nil))
+        (maphash (lambda (tag count) (push (cons tag count) tags-list)) tag-counts)
+        (setq tags-list (sort tags-list (lambda (a b) (> (cdr a) (cdr b)))))
+        (dolist (item tags-list)
+          (insert (format "| %s | %d |\n" (car item) (cdr item)))))
+      (goto-char (point-min))
+      (org-table-map-tables 'org-table-align t)
+      (read-only-mode 1))
+    (switch-to-buffer buf)))
+
+;;; org-hydra-menu.el --- Hydra menu for org presets
+
+(with-eval-after-load 'hydra
+  (defhydra hydra-org-presets (:hint nil :exit t)
+    "
+^Org Agenda 预设与视图管理^
+===========================================================================
+当前预设: %s(propertize my-current-org-agenda-preset 'face '(:foreground \"green\" :weight bold))
+当前视图: %s(propertize my-current-agenda-view 'face '(:foreground \"green\" :weight bold))
+
+^预设操作^                ^视图操作^                ^文件操作^                ^高级功能^
+^--------------^         ^--------------^         ^--------------^         ^--------------^
+_c_: 创建新预设           _v_: 打开当前视图         _a_: 添加文件             _S_: 保存所有配置
+_D_: 删除预设             _V_: 编辑视图配置         _r_: 删除文件             _i_: 导入预设配置
+_R_: 重命名预设           _n_: 新建自定义视图       _l_: 列出预设文件          _E_: 导出预设配置
+_y_: 复制克隆预设         _x_: 删除选定视图         _f_: 打开预设中文件        _t_: 批量添加标签
+                                                                   _s_: 查看预设统计
+
+^预设快速切换^            ^其他操作^
+^--------------^         ^--------------^
+_d_: 切换到默认预设       _o_: 打开标准议程
+_w_: 切换到工作预设       _C_: 快速捕获到预设
+_p_: 切换到个人预设       _m_: 选择其他预设
+_A_: 切换到全部扫描       _q_: 退出菜单
+
+提示: 切换预设后，使用 `v` 打开预设关联的视图
+"
+    ("d" (my-activate-org-agenda-preset "default") "切换到默认预设")
+    ("w" (my-activate-org-agenda-preset "work") "切换到工作预设")
+    ("p" (my-activate-org-agenda-preset "personal") "切换到个人预设")
+    ("A" (my-activate-org-agenda-preset "all") "切换到全部扫描预设")
+    ("m" (call-interactively 'my-activate-org-agenda-preset) "选择并切换预设")
+    ("c" my-create-preset "创建新的预设")
+    ("D" my-delete-preset "删除选定预设")
+    ("R" my-rename-preset "重命名当前预设")
+    ("y" my-duplicate-preset "复制当前预设为新预设")
+    ("v" (call-interactively 'my-show-preset-agenda) "打开当前预设视图")
+    ("V" my-edit-preset-agenda-view "编辑当前预设视图配置")
+    ("n" my-create-agenda-view "创建新的视图配置")
+    ("x" my-delete-agenda-view "删除视图配置")
+    ("o" org-agenda "打开标准 Org Agenda")
+    ("a" my-add-file-to-preset "向当前预设添加文件")
+    ("r" my-remove-file-from-preset "从当前预设移除文件")
+    ("l" my-list-preset-files "列出当前预设的所有文件")
+    ("f" my-find-file-in-preset "查找并打开预设中的文件")
+    ("C" my-org-capture-to-current-preset "捕获任务到当前预设")
+    ("S" my-save-org-presets "保存所有预设和视图配置")
+    ("i" my-import-preset "从文件导入预设配置")
+    ("E" my-export-preset "导出当前预设到文件")
+    ("t" my-org-batch-tag-files "为预设文件批量添加标签")
+    ("s" my-show-preset-stats "显示当前预设的统计信息")
+    ("q" nil "退出预设管理")))
+
+;; org-mode 设置
+(setq org-log-done 'time
+      org-log-into-drawer t
+      org-startup-indented t
+      org-startup-folded 'content
+      org-catch-invisible-edits 'show-and-error
+      org-agenda-span 'day
+      org-agenda-start-on-weekday nil
+      org-agenda-show-future-repeats t
+      org-agenda-skip-deadline-if-done t
+      org-agenda-skip-scheduled-if-done t)
+
+;; 初始化
+(my-load-org-presets)
+(unless org-agenda-files (my-activate-org-agenda-preset "default"))
+
+;; 
+;; `org-capture'
+
+
+;; 设置全局编码
+(set-language-environment "UTF-8")
+(prefer-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(setq-default buffer-file-coding-system 'utf-8)
+
+;; 定义关键路径变量，避免硬编码
+(defvar kk/org-capture-directory (expand-file-name "capture" org-directory)
+  "存放捕获内容的目录。")
+
+(defvar kk/org-bookmarks-file (expand-file-name "bookmarks/潜在资源.org" org-directory)
+  "书签收集文件。")
+
+(defvar kk/org-web-file (expand-file-name ".org/web.org" user-emacs-directory)
+  "网页收集文件。")
+
+(defvar kk/org-journal-file (expand-file-name ".org/notes/journal.org" user-emacs-directory)
+  "日记文件。")
+
+(defvar kk/org-work-file (expand-file-name "mission/work.org" org-directory)
+  "工作任务文件。")
+
+;; 确保目录存在
+(unless (file-exists-p kk/org-capture-directory)
+  (make-directory kk/org-capture-directory t))
+
+;; 加载org-protocol-capture-html
+(add-to-list 'load-path (expand-file-name ".utils/org-protocol-capture-html/" user-emacs-directory))
+(require 'org-protocol-capture-html)
+
+;;; Frame管理功能 - 在捕获完成后自动关闭窗口
+
+(defvar kk/delete-frame-after-capture 0 
+  "捕获完成后是否删除frame。0表示不删除，>0表示需要删除的frame数量。")
+
+(defun kk/delete-frame-if-necessary (&rest _args)
+  "根据`kk/delete-frame-after-capture`的值决定是否删除当前frame。"
+  (when (> kk/delete-frame-after-capture 0)
+    (if (> kk/delete-frame-after-capture 1)
+        (setq kk/delete-frame-after-capture (1- kk/delete-frame-after-capture))
+      (setq kk/delete-frame-after-capture 0)
+      (delete-frame))))
+
+;; 将函数添加到org-capture相关hook中
+(dolist (hook '(org-capture-finalize org-capture-kill org-capture-refile))
+  (advice-add hook :after #'kk/delete-frame-if-necessary))
+
+;;; 辅助函数
+
+(defun kk/org-capture-template-goto-link ()
+  "定位到特定标题并准备在其下追加内容。
+如果标题不存在，则创建该标题。"
+  (org-capture-put :target (list 'file+headline
+                               (nth 1 (org-capture-get :target))
+                               (org-capture-get :annotation)))
+  (org-capture-put-target-region-and-position)
+  (widen)
+  (let ((heading (nth 2 (org-capture-get :target))))
+    (goto-char (point-min))
+    (if (re-search-forward
+         (format org-complex-heading-regexp-format (regexp-quote heading)) nil t)
+        (org-end-of-subtree)
+      ;; 如果标题不存在，创建一个
+      (goto-char (point-max))
+      (unless (bolp) (insert "\n"))
+      (insert "* " heading "\n"))))
+
+(defun kk/set-delete-frame-flag (&optional count)
+  "设置捕获完成后删除frame的标志。
+COUNT为需要删除的frame数量，默认为2。"
+  (setq kk/delete-frame-after-capture (or count 2))
+  "")
+
+;; 处理捕获内容的编码
+(defun kk/decode-capture-content ()
+  "确保捕获的内容使用正确的UTF-8编码。"
+  (when (and (boundp 'org-capture-current-plist)
+             (plist-get org-capture-current-plist :initial))
+    (let ((initial (plist-get org-capture-current-plist :initial)))
+      (when (stringp initial)
+        (let ((decoded (decode-coding-string 
+                         (encode-coding-string initial 'raw-text)
+                         'utf-8-unix)))
+          (org-capture-put :initial decoded))))))
+
+(add-hook 'org-capture-prepare-finalize-hook 'kk/decode-capture-content)
+
+;;; 定义org-capture模板 - 修复格式错误
+
+(setq org-capture-templates
+      '(
+        ;; 浏览器插件捕获模板组
+        ("p" "捕获协议组" nil nil nil :keys nil)  ;; 修复组标题格式
+        
+        ("pb" "书签收集器" entry 
+         (file+headline kk/org-web-file "Bookmarks") 
+         "* %U - %:annotation" 
+         :immediate-finish t :prepend t)
+        
+        ("pn" "创建新笔记" entry 
+         (file+headline kk/org-web-file "New Notes") 
+         "* %:description :RESEARCH:\n#+BEGIN_QUOTE\n%i\n\n -- %:link %u\n#+END_QUOTE\n\n%?" 
+         :prepend t)
+        
+        ("ph" "书签" entry 
+         (file+headline kk/org-web-file "Notes") 
+         "* %U - %:annotation %^g\n\n  %?" 
+         :empty-lines 1 :prepend t)
+        
+        ;; 追加内容，依托于org-capture浏览器插件
+        ("pl" "追加内容" plain 
+         (file+function 
+          ,(concat kk/org-capture-directory "/full_capture.org") 
+          kk/org-capture-template-goto-link) 
+         "%U%?\n\n%:initial" 
+         :empty-lines 1 :prepend t)
+
+        ;; 网页内容捕获
+        ("w" "信息收集器" entry 
+         (file+headline 
+          ,(concat kk/org-capture-directory "/full_capture.org") 
+          "吞天食地") 
+         "** %a :网络资源:\n%U %?\n\n%:initial" 
+         :clock-in t :clock-resume t)
+        
+        ("L" "捕获链接" entry 
+         (file+headline kk/org-bookmarks-file "潜在资源") 
+         "* %?[[%:link][%:description]] %(kk/set-delete-frame-flag)\nCaptured On: %U" 
+         :empty-lines 1)
+        
+        ;; 个人任务捕获
+        ("t" "意识流" nil nil nil :keys nil)  ;; 修复组标题格式
+        
+        ("tw" "信息收集" entry 
+         (file+headline kk/org-work-file "Work") 
+         "* TODO %^{任务名}\n%u\n%a\n" 
+         :clock-in t :clock-resume t)
+        
+        ;; 日记式记录
+        ("j" "笔记" entry 
+         (file+olp+datetree kk/org-journal-file) 
+         "* %?\nRecording Time: %U\n  %i\n  %a")))
+
+;; 处理URL参数的编码
+(advice-add 'org-protocol-parse-parameters :around
+            (lambda (orig-fun &rest args)
+              "确保URL参数正确解码为UTF-8。"
+              (let ((coding-system-for-read 'utf-8)
+                    (coding-system-for-write 'utf-8))
+                (apply orig-fun args))))
+
+;; 设置网络请求编码
+(setq network-coding-system-alist '(("http" . utf-8)))
+#+end_src
+
+
+
+
+
