@@ -1,0 +1,909 @@
+# -*- mode: org; buffer-read-only: t; coding: utf-8; org-image-actual-width: nil; eval: (setq-local css-path (expand-file-name ".utils/css/org.css" user-emacs-directory)); -*-
+#+STARTUP: content align inlineimages indent hidestars
+#+PROPERTY: header-args :eval never :mkdirp yes
+#+OPTIONS: html-postamble:nil
+#+OPTIONS: ':t *:t -:t ::t <:t H:5 \n:nil ^:t arch:headline author:t c:nil
+#+OPTIONS: creator:nil d:(not LOGBOOK) date:t e:t email:nil f:t inline:t
+#+OPTIONS: *:nil toc:t num:nil
+#+OPTIONS: todo:t |:t tex:t
+#+DESCRIPTION: ORG JOURNAL Recording
+#+LANGUAGE: en
+#+PROPERTY: header-args :eval yes
+
+#+TITLE: XLSX to CSV Converter
+#+STARTUP: overview
+
+* XLSX to CSV to Org Mode Table Converter
+** excel to csv
+这是一个使用纯 Emacs Lisp 实现的 XLSX 到 CSV 转换器。它不依赖外部工具（除了可选的 unzip），可以处理多工作表文件，支持共享字符串，并与 Dired 集成。
+
+*** 主要特性
+- 纯 Elisp 实现（Emacs 30.1+）
+- 支持多工作表导出
+- 处理共享字符串
+- Dired 集成
+- 完善的错误处理
+- 支持中文文件名
+
+*** 包声明和依赖
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; xlsx-to-csv.el --- Convert .xlsx files to .csv using pure Elisp -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2025 William Theesfeld
+
+;; Author: William Theesfeld <william@theesfeld.net>
+;; Version: 0.9
+;; Keywords: files, data, spreadsheet, dired
+;; Package-Requires: ((emacs "30.1"))
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;;; Commentary:
+
+;; This package converts .xlsx files to .csv files using only built-in Emacs
+;; 30.1 functionality. See README for detailed usage.
+
+;;; Code:
+
+(require 'arc-mode)  ; For archive handling
+(require 'xml)       ; For XML parsing
+(require 'dired)     ; For Dired integration
+#+end_src
+
+#+results:
+: dired
+
+*** XLSX 文件结构解析
+
+**** ZIP 归档提取
+
+XLSX 文件本质上是一个 ZIP 归档，包含多个 XML 文件。我们需要提取这些文件。
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; ZIP Archive Extraction
+
+(defun xlsx-to-csv--extract-to-buffer (archive file-name)
+  "Extract FILE-NAME from ARCHIVE to a temporary buffer.
+Return the buffer or nil if extraction fails.
+
+This function tries two methods:
+1. External unzip command (faster)
+2. Built-in Emacs archive-mode (fallback)"
+  (let ((temp-dir (make-temp-file "xlsx-extract" t))
+        target-file content-buffer)
+    (unwind-protect
+        (condition-case err
+            (progn
+              ;; Try unzip first
+              (let ((exit-code (call-process "unzip" nil nil nil
+                                           "-qq" "-o"
+                                           (expand-file-name archive)
+                                           file-name
+                                           "-d" temp-dir)))
+                (if (zerop exit-code)
+                    ;; Unzip succeeded, read the file
+                    (progn
+                      (setq target-file (expand-file-name file-name temp-dir))
+                      (when (file-exists-p target-file)
+                        (setq content-buffer (get-buffer-create " *xlsx-temp*"))
+                        (with-current-buffer content-buffer
+                          (erase-buffer)
+                          (let ((coding-system-for-read 'utf-8))
+                            (insert-file-contents target-file))
+                          (goto-char (point-min))
+                          content-buffer)))
+                  ;; Unzip failed, try Emacs built-in method
+                  (setq content-buffer (xlsx-to-csv--extract-with-emacs archive file-name))))
+              content-buffer)
+          (error
+           (when content-buffer
+             (kill-buffer content-buffer))
+           (message "Failed to extract %s from %s: %s"
+                    file-name archive (error-message-string err))
+           nil))
+      ;; Cleanup
+      (when (file-directory-p temp-dir)
+        (delete-directory temp-dir t)))))
+
+(defun xlsx-to-csv--extract-with-emacs (archive file-name)
+  "Fallback extraction method using Emacs built-in archive support."
+  (let (archive-buffer content-buffer extracted-buffer)
+    (condition-case err
+        (progn
+          (setq archive-buffer (find-file-noselect archive))
+          (with-current-buffer archive-buffer
+            (goto-char (point-min))
+            ;; Enable archive mode if not already enabled
+            (unless (eq major-mode 'archive-mode)
+              (archive-mode))
+            
+            ;; Search for the file entry
+            (goto-char (point-min))
+            (if (re-search-forward (regexp-quote file-name) nil t)
+                (progn
+                  ;; Extract the file
+                  (beginning-of-line)
+                  (archive-extract)
+                  ;; The extracted content should be in a new buffer
+                  (setq extracted-buffer (current-buffer))
+                  (setq content-buffer (get-buffer-create " *xlsx-extracted*"))
+                  (with-current-buffer content-buffer
+                    (erase-buffer)
+                    (insert-buffer-substring extracted-buffer)
+                    (goto-char (point-min))
+                    content-buffer))
+              (error "File %s not found in archive" file-name)))
+          content-buffer)
+      (error
+       (when content-buffer
+         (kill-buffer content-buffer))
+       (message "Emacs extraction failed for %s: %s" 
+                file-name (error-message-string err))
+       nil))
+    (when archive-buffer
+      (kill-buffer archive-buffer))))
+#+end_src
+
+#+results:
+: xlsx-to-csv--extract-with-emacs
+
+*** XML 解析工具函数
+
+Excel 使用带命名空间的 XML，我们需要特殊处理。
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; XML Parsing Utilities
+
+(defun xlsx-to-csv--xml-get-children (node tag-name)
+  "Get all children of NODE with TAG-NAME, handling namespaces properly."
+  (let (result)
+    (dolist (child (xml-node-children node))
+      (when (and (listp child)
+                 (let ((child-tag (xml-node-name child)))
+                   (or (eq child-tag tag-name)
+                       ;; Handle namespaced tags
+                       (and (symbolp child-tag)
+                            (string-match (concat "\KATEX_INLINE_OPEN?:^\\|:\KATEX_INLINE_CLOSE" 
+                                                (regexp-quote (symbol-name tag-name)) 
+                                                "$")
+                                        (symbol-name child-tag))))))
+        (push child result)))
+    (nreverse result)))
+
+(defun xlsx-to-csv--xml-get-attribute (node attr-name)
+  "Get attribute ATTR-NAME from NODE, handling all cases."
+  (let ((attrs (xml-node-attributes node))
+        (attr-str (symbol-name attr-name)))
+    (or 
+     ;; Direct match
+     (cdr (assq attr-name attrs))
+     ;; Case-insensitive match
+     (let (result)
+       (dolist (attr attrs result)
+         (when (string-equal (downcase (symbol-name (car attr)))
+                           (downcase attr-str))
+           (setq result (cdr attr)))))
+     ;; Match with namespace
+     (let (result)
+       (dolist (attr attrs result)
+         (when (string-match (concat "\KATEX_INLINE_OPEN?:^\\|:\KATEX_INLINE_CLOSE" 
+                                   (regexp-quote attr-str) 
+                                   "$")
+                           (symbol-name (car attr)))
+           (setq result (cdr attr))))))))
+
+(defun xlsx-to-csv--xml-get-text (node)
+  "Extract all text content from NODE and its children."
+  (let ((text ""))
+    (dolist (child (xml-node-children node))
+      (cond
+       ((stringp child)
+        (setq text (concat text child)))
+       ((listp child)
+        (setq text (concat text (xlsx-to-csv--xml-get-text child))))))
+    text))
+#+end_src
+
+#+results:
+: xlsx-to-csv--xml-get-text
+
+*** 共享字符串处理
+
+Excel 使用共享字符串来优化存储，相同的字符串只存储一次。
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Shared Strings Parsing
+
+(defun xlsx-to-csv--parse-shared-strings (xlsx-file)
+  "Parse shared strings from XLSX-FILE's sharedStrings.xml.
+Return a list of strings or empty list if file doesn't exist.
+
+Shared strings are stored in xl/sharedStrings.xml and referenced
+by index in the sheet data."
+  (let ((buffer (xlsx-to-csv--extract-to-buffer xlsx-file "xl/sharedStrings.xml"))
+        xml-tree strings)
+    (if (not buffer)
+        ;; Some xlsx files don't have sharedStrings.xml, return empty list
+        (progn
+          (message "No sharedStrings.xml found, using empty shared strings")
+          '())
+      (unwind-protect
+          (condition-case err
+              (progn
+                (setq xml-tree
+                      (with-current-buffer buffer
+                        (car (xml-parse-region (point-min) (point-max)))))
+                (unless xml-tree
+                  (error "Failed to parse sharedStrings.xml"))
+                
+                (setq strings '())
+                ;; Handle both namespaced and non-namespaced elements
+                (dolist (si (xlsx-to-csv--xml-get-children xml-tree 'si))
+                  (let ((text (xlsx-to-csv--xml-get-text si)))
+                    (push text strings)))
+                (nreverse strings))
+            (error
+             (message "Error parsing shared strings in %s: %s"
+                      xlsx-file (error-message-string err))
+             '()))
+        (kill-buffer buffer)))))
+#+end_src
+
+#+results:
+: xlsx-to-csv--parse-shared-strings
+
+*** 工作表信息获取
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Workbook Parsing
+
+(defun xlsx-to-csv--get-sheets (xlsx-file)
+  "Parse sheets from XLSX-FILE's workbook.xml.
+Return a list of (sheet-num . sheet-name) or nil on failure."
+  (let ((buffer (xlsx-to-csv--extract-to-buffer xlsx-file "xl/workbook.xml"))
+        xml-tree sheets)
+    (if (not buffer)
+        (progn
+          (message "Failed to extract workbook.xml")
+          nil)
+      (unwind-protect
+          (condition-case err
+              (progn
+                (setq xml-tree
+                      (with-current-buffer buffer
+                        (car (xml-parse-region (point-min) (point-max)))))
+                (unless xml-tree
+                  (error "Failed to parse workbook.xml"))
+                
+                (setq sheets '())
+                ;; Find sheets node (handle namespaces)
+                (dolist (sheets-node (xlsx-to-csv--xml-get-children xml-tree 'sheets))
+                  (dolist (sheet (xlsx-to-csv--xml-get-children sheets-node 'sheet))
+                    (let ((sheet-id (xlsx-to-csv--xml-get-attribute sheet 'sheetId))
+                          (sheet-name (xlsx-to-csv--xml-get-attribute sheet 'name)))
+                      (when (and sheet-id sheet-name)
+                        (push (cons (string-to-number sheet-id)
+                                  sheet-name)
+                              sheets)))))
+                (nreverse sheets))
+            (error
+             (message "Error parsing sheets in %s: %s"
+                      xlsx-file (error-message-string err))
+             nil))
+        (kill-buffer buffer)))))
+#+end_src
+
+#+results:
+: xlsx-to-csv--get-sheets
+
+*** 单元格坐标转换
+
+Excel 使用 A1 格式的单元格引用，我们需要转换为数字坐标。
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Cell Reference Conversion
+
+(defun xlsx-to-csv--cell-to-coords (cell-ref)
+  "Convert CELL-REF (e.g., \"A1\") to (row . col) coordinates.
+Return nil if conversion fails.
+
+Examples:
+  \"A1\"  -> (0 . 0)
+  \"B2\"  -> (1 . 1)
+  \"AA1\" -> (0 . 26)"
+  (condition-case err
+      (progn
+        ;; Trim whitespace and ensure uppercase
+        (setq cell-ref (upcase (string-trim cell-ref)))
+        
+        ;; Parse without regex - find where letters end and numbers begin
+        (let ((i 0)
+              (len (length cell-ref))
+              col-end)
+          ;; Find the end of column letters
+          (while (and (< i len)
+                      (>= (aref cell-ref i) ?A)
+                      (<= (aref cell-ref i) ?Z))
+            (setq i (1+ i)))
+          (setq col-end i)
+          
+          ;; Check if we have both letters and numbers
+          (if (and (> col-end 0)  ; Has at least one letter
+                   (< col-end len))  ; Has at least one character after letters
+              ;; Verify the rest are all digits
+              (let ((all-digits t)
+                    (j col-end))
+                (while (and all-digits (< j len))
+                  (unless (and (>= (aref cell-ref j) ?0)
+                               (<= (aref cell-ref j) ?9))
+                    (setq all-digits nil))
+                  (setq j (1+ j)))
+                
+                (if all-digits
+                    (let* ((col-str (substring cell-ref 0 col-end))
+                           (row-str (substring cell-ref col-end))
+                           (col-num 0)
+                           (row-num (1- (string-to-number row-str))))
+                      ;; Convert column letters to number (A=0, B=1, ..., Z=25, AA=26, etc.)
+                      (dolist (char (string-to-list col-str))
+                        (setq col-num (+ (* col-num 26) (- char ?A) 1)))
+                      (setq col-num (1- col-num))
+                      (cons row-num col-num))
+                  nil))
+            nil)))
+    (error
+     (message "Error converting cell reference %s: %s"
+              cell-ref (error-message-string err))
+     nil)))
+#+end_src
+
+#+results:
+: xlsx-to-csv--cell-to-coords
+
+*** 工作表数据解析
+
+这是核心功能，解析工作表 XML 并提取数据。
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Sheet Data Parsing
+
+(defun xlsx-to-csv--parse-sheet (xlsx-file sheet-num shared-strings)
+  "Parse sheet SHEET-NUM from XLSX-FILE using SHARED-STRINGS.
+Return a data structure or nil on failure."
+  (let ((file-name (format "xl/worksheets/sheet%d.xml" sheet-num))
+        buffer xml-tree rows max-row max-col)
+    
+    (setq buffer (xlsx-to-csv--extract-to-buffer xlsx-file file-name))
+    (if (not buffer)
+        (progn
+          (message "Failed to extract %s" file-name)
+          nil)
+      (unwind-protect
+          (condition-case err
+              (progn
+                (setq xml-tree
+                      (with-current-buffer buffer
+                        (car (xml-parse-region (point-min) (point-max)))))
+                (unless xml-tree
+                  (error "Failed to parse %s" file-name))
+                
+                (setq rows '() max-row 0 max-col 0)
+                ;; Find sheetData node
+                (dolist (sheet-data (xlsx-to-csv--xml-get-children xml-tree 'sheetData))
+                  (dolist (row (xlsx-to-csv--xml-get-children sheet-data 'row))
+                    (let ((row-data '()))
+                      (dolist (c (xlsx-to-csv--xml-get-children row 'c))
+                        (let* ((cell-ref (xlsx-to-csv--xml-get-attribute c 'r))
+                               (coords (and cell-ref (xlsx-to-csv--cell-to-coords cell-ref)))
+                               (value "")
+                               (t-attr (xlsx-to-csv--xml-get-attribute c 't))
+                               (v-nodes (xlsx-to-csv--xml-get-children c 'v)))
+                          
+                          ;; Extract value
+                          (when v-nodes
+                            (setq value (xlsx-to-csv--xml-get-text (car v-nodes))))
+                          
+                          (when coords
+                            ;; Handle different cell types
+                            (cond
+                             ;; Shared string
+                             ((string= t-attr "s")
+                              (let ((index (string-to-number value)))
+                                (when (and (>= index 0) (< index (length shared-strings)))
+                                  (setq value (nth index shared-strings)))))
+                             ;; Inline string
+                             ((string= t-attr "inlineStr")
+                              (let ((is-nodes (xlsx-to-csv--xml-get-children c 'is)))
+                                (when is-nodes
+                                  (setq value (xlsx-to-csv--xml-get-text (car is-nodes)))))))
+                            
+                            ;; Add cell to row data
+                            (push (cons coords value) row-data)
+                            (setq max-row (max max-row (car coords)))
+                            (setq max-col (max max-col (cdr coords))))))
+                      (when row-data
+                        (push row-data rows)))))
+                
+                ;; Convert to matrix format
+                (if (> (length rows) 0)
+                    (let ((matrix (make-vector (1+ max-row) nil)))
+                      (dotimes (i (1+ max-row))
+                        (aset matrix i (make-vector (1+ max-col) "")))
+                      
+                      (dolist (row rows)
+                        (dolist (cell row)
+                          (let ((coords (car cell))
+                                (value (cdr cell)))
+                            (when (and (>= (car coords) 0) (<= (car coords) max-row)
+                                     (>= (cdr coords) 0) (<= (cdr coords) max-col))
+                              (aset (aref matrix (car coords)) (cdr coords) value)))))
+                      
+                      (mapcar (lambda (row-vec) 
+                                (append row-vec nil))
+                              (append matrix nil)))
+                  nil))
+            (error
+             (message "Error parsing sheet %d in %s: %s"
+                      sheet-num xlsx-file (error-message-string err))
+             nil))
+        (kill-buffer buffer)))))
+#+end_src
+
+#+results:
+: xlsx-to-csv--parse-sheet
+
+*** CSV 输出
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; CSV Output
+
+(defun xlsx-to-csv--to-csv (data output-file)
+  "Write DATA (list of lists) to OUTPUT-FILE in CSV format.
+Return t on success, nil on failure.
+
+Properly escapes values containing commas, quotes, or newlines."
+  (condition-case err
+      (progn
+        (let ((dir (file-name-directory (expand-file-name output-file))))
+          (unless (file-directory-p dir)
+            (error "Directory does not exist: %s" dir))
+          (when (and (not (eq system-type 'windows-nt))
+                     (not (file-writable-p dir)))
+            (error "Directory not writable: %s" dir)))
+        
+        (with-temp-file output-file
+          (dolist (row data)
+            (when row ; Skip empty rows
+              (insert
+               (mapconcat (lambda (cell)
+                            (let ((cell-str (if (stringp cell) cell (format "%s" cell))))
+                              (if (or (string-match "," cell-str)
+                                      (string-match "\"" cell-str)
+                                      (string-match "\n" cell-str))
+                                  (concat "\"" (replace-regexp-in-string "\"" "\"\"" cell-str) "\"")
+                                cell-str)))
+                          row ","))
+              (insert "\n"))))
+        t)
+    (error
+     (message "Failed to write CSV %s: %s" output-file (error-message-string err))
+     nil)))
+#+end_src
+
+#+results:
+: xlsx-to-csv--to-csv
+
+*** 主要转换函数
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Main Conversion Function
+
+(defun xlsx-to-csv-convert-file (file)
+  "Convert .xlsx FILE to .csv files.
+Return the list of output file paths or nil on failure."
+  (interactive "fXLSX file: ")
+  (let (base-name shared-strings sheets output-files)
+    (condition-case err
+        (progn
+          ;; Ensure file is properly expanded
+          (setq file (expand-file-name file))
+          
+          (unless (and (file-exists-p file) (file-readable-p file))
+            (error "File does not exist or is not readable: %s" file))
+          (unless (string-suffix-p ".xlsx" file)
+            (error "File must be a .xlsx file: %s" file))
+          
+          (setq base-name (file-name-sans-extension file))
+          
+          ;; Parse shared strings
+          (message "Parsing shared strings...")
+          (setq shared-strings (xlsx-to-csv--parse-shared-strings file))
+          (message "Found %d shared strings" (length shared-strings))
+          
+          ;; Parse sheets
+          (message "Parsing sheets...")
+          (setq sheets (xlsx-to-csv--get-sheets file))
+          (unless sheets
+            (error "No sheets found in %s" file))
+          (message "Found %d sheets" (length sheets))
+          
+          ;; Process each sheet
+          (setq output-files '())
+          (dolist (sheet sheets)
+            (let* ((sheet-num (car sheet))
+                   (sheet-name (cdr sheet))
+                   ;; 更温和的文件名清理，保留中文和更多字符
+                   (safe-sheet-name (replace-regexp-in-string 
+                                    "[/\\\\:*?\"<>|]" "_" sheet-name))
+                   (output-file (if (= (length sheets) 1)
+                                   ;; 单个工作表：只使用基础文件名
+                                   (format "%s.csv" base-name)
+                                 ;; 多个工作表：使用 基础名-工作表名.csv
+                                 (format "%s-%s.csv" base-name safe-sheet-name))))
+              
+              (message "Processing sheet %d: %s" sheet-num sheet-name)
+              (let ((data (xlsx-to-csv--parse-sheet file sheet-num shared-strings)))
+                (if data
+                    (if (xlsx-to-csv--to-csv data output-file)
+                        (progn
+                          (push output-file output-files)
+                          (message "Successfully converted sheet '%s' to %s" sheet-name output-file))
+                      (message "Failed to write sheet '%s' to CSV" sheet-name))
+                  (message "Failed to parse sheet '%s' (no data found)" sheet-name)))))
+          
+          (when (called-interactively-p 'interactive)
+            (if output-files
+                (message "Converted %s to %d CSV files: %s"
+                         file (length output-files)
+                         (string-join (nreverse output-files) ", "))
+              (message "Failed to convert %s: No CSV files generated" file)))
+          
+          (nreverse output-files))
+      (error
+       (message "Error converting %s: %s" file (error-message-string err))
+       nil))))
+#+end_src
+
+#+results:
+: xlsx-to-csv-convert-file
+
+*** Dired 集成
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Dired Integration
+
+(defun dired-do-xlsx-to-csv (&optional arg)
+  "Convert marked .xlsx files in Dired to .csv files.
+ARG is the prefix argument passed by Dired."
+  (interactive "P")
+  (let ((files (dired-get-marked-files nil arg))
+        (success-count 0))
+    (dolist (file files)
+      (if (string-suffix-p ".xlsx" file)
+          (let ((result (xlsx-to-csv-convert-file file)))
+            (when result
+              (setq success-count (1+ success-count))))
+        (message "Skipping non-.xlsx file: %s" file)))
+    (message "Processed %d .xlsx files successfully" success-count)))
+
+(define-key dired-mode-map (kbd "C-c x") #'dired-do-xlsx-to-csv)
+#+end_src
+
+#+results:
+: dired-do-xlsx-to-csv
+
+*** 调试工具（可选）
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Debug Utilities (Optional)
+
+(defun xlsx-to-csv--list-archive-contents (archive)
+  "List contents of ARCHIVE for debugging purposes."
+  (let ((output-buffer (get-buffer-create "*xlsx-archive-contents*")))
+    (with-current-buffer output-buffer
+      (erase-buffer)
+      (call-process "unzip" nil output-buffer nil "-l" (expand-file-name archive))
+      (message "Archive contents listed in buffer: %s" (buffer-name output-buffer)))))
+#+end_src
+
+#+results:
+: xlsx-to-csv--list-archive-contents
+
+*** 包结束
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+(provide 'xlsx-to-csv)
+;;; xlsx-to-csv.el ends here
+#+end_src
+
+#+results:
+: xlsx-to-csv
+
+*** 已知限制和未来改进
+
+**** 当前限制
+1. 不支持公式计算（只读取缓存的值）
+2. 不支持日期格式（显示为数字）
+3. 不支持合并单元格
+4. 不支持样式信息
+
+**** 可能的改进
+1. 添加日期格式识别和转换
+2. 支持更多单元格类型
+3. 添加进度条显示
+4. 支持自定义 CSV 分隔符
+
+*** 故障排除
+
+**** 常见问题
+
+1. **找不到 sharedStrings.xml**
+   - 这是正常的，某些 Excel 文件不使用共享字符串
+
+2. **Windows 上的路径问题**
+   - 确保使用正斜杠或双反斜杠
+
+3. **中文文件名乱码**
+   - 检查系统编码设置
+
+**** COMMENT 调试方法
+
+#+begin_src emacs-lisp
+;; 查看 xlsx 文件内容
+(xlsx-to-csv--list-archive-contents "your-file.xlsx")
+
+;; 开启详细日志
+(setq debug-on-error t)
+#+end_src
+
+#+results:
+: t
+** csv to org table
+
+*** 核心转换函数
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; CSV to Org Table Conversion Functions
+
+(defun xlsx-to-csv--parse-csv-line (line)
+  "Parse a CSV LINE handling quoted fields correctly."
+  (let ((fields '())
+        (current-field "")
+        (in-quotes nil)
+        (i 0)
+        (len (length line)))
+    (while (< i len)
+      (let ((char (aref line i)))
+        (cond
+         ;; Start or end quote
+         ((and (= char ?\") (not in-quotes))
+          (setq in-quotes t))
+         ;; End quote
+         ((and (= char ?\") in-quotes)
+          (if (and (< (1+ i) len) (= (aref line (1+ i)) ?\"))
+              ;; Escaped quote
+              (progn
+                (setq current-field (concat current-field "\""))
+                (setq i (1+ i)))
+            ;; End of quoted field
+            (setq in-quotes nil)))
+         ;; Field separator
+         ((and (= char ?,) (not in-quotes))
+          (push current-field fields)
+          (setq current-field ""))
+         ;; Regular character
+         (t
+          (setq current-field (concat current-field (char-to-string char))))))
+      (setq i (1+ i)))
+    ;; Add last field
+    (push current-field fields)
+    (nreverse fields)))
+
+(defun xlsx-to-csv--csv-to-org-table-string (csv-file)
+  "Convert CSV-FILE content to org table format string."
+  (with-temp-buffer
+    (insert-file-contents csv-file)
+    (goto-char (point-min))
+    (let ((table-content "")
+          (line-count 0))
+      (while (not (eobp))
+        (let* ((line (buffer-substring-no-properties 
+                      (line-beginning-position) 
+                      (line-end-position)))
+               (fields (xlsx-to-csv--parse-csv-line line)))
+          (unless (string-empty-p (string-trim line))
+            ;; Add table row
+            (setq table-content 
+                  (concat table-content
+                          "| " 
+                          (mapconcat 'identity fields " | ")
+                          " |\n"))
+            ;; Add separator after header row
+            (when (= line-count 0)
+              (setq table-content 
+                    (concat table-content
+                            "|" 
+                            (mapconcat (lambda (_) "---") fields "|")
+                            "|\n")))
+            (setq line-count (1+ line-count))))
+        (forward-line 1))
+      table-content)))
+
+(defun xlsx-to-org-table-string (xlsx-file)
+  "Convert XLSX-FILE to org table format string.
+Returns the complete org content including all sheets."
+  (let* ((csv-files (xlsx-to-csv-convert-file xlsx-file))
+         (org-content ""))
+    
+    (when csv-files
+      (dolist (csv-file csv-files)
+        (let* ((sheet-name (if (string-match "\KATEX_INLINE_OPEN[^-]+\KATEX_INLINE_CLOSE-\KATEX_INLINE_OPEN.+\KATEX_INLINE_CLOSE\\.csv$" csv-file)
+                              (match-string 2 csv-file)
+                            (file-name-sans-extension 
+                             (file-name-nondirectory csv-file)))))
+          
+          ;; Add sheet heading if multiple sheets
+          (when (> (length csv-files) 1)
+            (setq org-content 
+                  (concat org-content
+                          (format "** %s\n\n" sheet-name))))
+          
+          ;; Convert CSV to org table
+          (setq org-content 
+                (concat org-content
+                        (xlsx-to-csv--csv-to-org-table-string csv-file)
+                        "\n"))))
+      
+      ;; Clean up CSV files
+      (dolist (csv-file csv-files)
+        (delete-file csv-file)))
+    
+    org-content))
+#+end_src
+
+#+results:
+: xlsx-to-org-table-string
+
+*** 便捷的导入函数
+
+#+begin_src emacs-lisp :tangle xlsx-to-csv.el
+;;; Convenient Import Functions for Org Babel
+
+(defun xlsx-to-org-table (xlsx-file &optional with-metadata)
+  "Convert XLSX-FILE to org table format.
+If WITH-METADATA is non-nil, include title and date information."
+  (let ((org-content ""))
+    
+    ;; Add metadata if requested
+    (when with-metadata
+      (setq org-content 
+            (concat org-content
+                    (format "#+TITLE: 数据导入 - %s\n" 
+                           (file-name-nondirectory xlsx-file))
+                    (format "#+DATE: %s\n\n" 
+                           (format-time-string "%Y-%m-%d %H:%M:%S"))
+                    "*** 导入的数据表\n\n**** full data")))
+    
+    ;; Convert xlsx to org table
+    (setq org-content 
+          (concat org-content
+                  (xlsx-to-org-table-string xlsx-file)))
+    
+    org-content))
+
+(defun xlsx-import-inline (xlsx-file)
+  "Import XLSX-FILE and return org table format for inline use."
+  (xlsx-to-org-table-string xlsx-file))
+#+end_src
+
+#+results:
+: xlsx-import-inline
+** usage case
+*** COMMENT basic usage
+#+begin_src emacs-lisp :results output
+;; 转换单个文件
+(xlsx-to-csv-convert-file "~/test.xlsx")
+
+;; 在 Dired 中使用
+;; 1. 打开包含 xlsx 文件的目录
+;; 2. 标记要转换的文件
+;; 3. 按 C-c x
+#+end_src
+
+#+results:
+
+*** COMMENT excel to csv test demo
+#+begin_src emacs-lisp
+;; 你的测试例子
+(xlsx-to-csv-convert-file "C:/Users/<user_name>/Downloads/elisp.xlsx")
+#+end_src
+
+*** csv to org table test demo
+#+BEGIN_SRC elisp :results raw
+(xlsx-to-org-table-string "C:/Users/<user_name>/Downloads/elisp.xlsx")
+#+END_SRC
+
+#+results:
+| category          | form_or_cmd                               | description_zh                 | notes                             |
+|-------------------+-------------------------------------------+--------------------------------+-----------------------------------|
+| 基本操作           | (message "Hello %s" "world")              | 在 echo-area 输出字符串          | 格式化输出                         |
+| 基本操作           | (prin1-to-string 123)                     | 将对象转成字符串                 | 常用于调试                         |
+| 基本操作           | (read-from-minibuffer "Input: ")          | 从 minibuffer 读取字符串         |                                   |
+| 执行与求值         | (eval-expression)                         | M-: 在 minibuffer 里求值表达式   |                                   |
+| 执行与求值         | (eval-region)                             | 对选中区域求值                   | C-M-x 在 Lisp buffer 对 defun 求值 |
+| 执行与求值         | (load "file")                             | 加载 elisp 文件                 | 可选第三参不报错,第四参避免 message   |
+| 执行与求值         | (require 'cl-lib)                         | 按特性加载库                     | 返回 t                            |
+| 执行与求值         | (provide 'feature)                        | 声明当前文件提供的特性            |                                   |
+| 变量 & 赋值        | (setq x 10)                               | 设置动态变量                     |                                   |
+| 变量 & 赋值        | (let ((x 1) (y 2)) ...)                   | 创建临时绑定                     | 动态作用域                         |
+| 变量 & 赋值        | (defconst pi 3.14)                        | 定义常量                        |                                   |
+| 变量 & 赋值        | (defvar user-name "me")                   | 若未绑定就初始化                 |                                   |
+| 函数定义           | (defun square (x) (* x x))                | 定义函数                        |                                   |
+| 函数定义           | (defalias 'sq 'square)                    | 给函数取别名                     |                                   |
+| 函数定义           | (lambda (x) (* x x))                      | 匿名函数                        |                                   |
+| 交互式命令         | (interactive)                             | 让函数成为 M-x 可调用命令         |                                   |
+| 交互式命令         | (interactive "sName: ")                   | 指定 minibuffer 提示并读取       |                                   |
+| 控制流             | (when cond body...)                       | 真时执行                        |                                   |
+| 控制流             | (unless cond body...)                     | 假时执行                        |                                   |
+| 控制流             | (if cond then else)                       | 条件分支                        |                                   |
+| 控制流             | (cond (test1 res1) (t default))           | 多分支                          |                                   |
+| 迭代              | (dotimes (i 10) ...)                      | 对整数 i 迭代                   |                                   |
+| 迭代              | (dolist (x list) ...)                     | 遍历列表                        |                                   |
+| 布尔与比较         | (eq a b)                                  | 比较符号是否同一                 |                                   |
+| 布尔与比较         | (equal a b)                               | 深度比较                        |                                   |
+| 布尔与比较         | (= n m)                                   | 数值相等                        |                                   |
+| 列表操作           | (car list)                                | 取首元素                        |                                   |
+| 列表操作           | (cdr list)                                | 取尾部                          |                                   |
+| 列表操作           | (cons x xs)                               | 构造新列表                      |                                   |
+| 列表操作           | (append l1 l2)                            | 连接列表                        | 支持多实参                         |
+| 列表操作           | (nth 2 list)                              | 取第 n 项(从 0)                 |                                   |
+| 列表操作           | (length list)                             | 求长度                          |                                   |
+| 字符串             | (concat "a" "b")                          | 拼接字符串                      |                                   |
+| 字符串             | (substring "abc" 1 2)                     | 截取子串,得 "b"                 |                                   |
+| 字符串             | (format "Hello %s" "you")                 | 格式化                          |                                   |
+| 向量 & 数组        | (aref [1 2 3] 0)                          | 向量取值                        | C语言式下标                        |
+| 向量 & 数组        | (aset vec idx val)                        | 向量赋值                        |                                   |
+| 散列表             | (make-hash-table :test 'equal)            | 创建哈希表                      |                                   |
+| 散列表             | (puthash key val table)                   | 写入                           |                                   |
+| 散列表             | (gethash key table default)               | 读取                           |                                   |
+| 符号 & 属性        | (symbol-value 'x)                         | 取符号值                        |                                   |
+| 符号 & 属性        | (set 'x 42)                               | 通过符号设置值                   |                                   |
+| 符号 & 属性        | (symbol-plist 'x)                         | 属性列表                        |                                   |
+| 宏                | (defmacro when* (c &rest b) `(if          | c (progn                       | @b)))                             |
+| 宏                | (macroexpand '(when* t 1 2))              | 展开宏                          |                                   |
+| 缓冲区 & 文件      | (current-buffer)                          | 返回当前 buffer 对象             |                                   |
+| 缓冲区 & 文件      | (find-file "foo.el")                      | 在当前窗口打开文件                |                                   |
+| 缓冲区 & 文件      | (save-buffer)                             | 保存文件                        |                                   |
+| 缓冲区 & 文件      | (with-temp-buffer ...)                    | 创建临时 buffer                 |                                   |
+| 窗口管理           | (split-window-right)                      | (C-x 3) 垂直分窗                |                                   |
+| 窗口管理           | (other-window 1)                          | (C-x o) 切到下一窗口             |                                   |
+| 查找 & 替换        | (search-forward "str")                    | 向前查找                        |                                   |
+| 查找 & 替换        | (replace-string "old" "new")              | 字符串替换                      |                                   |
+| 键盘映射           | (global-set-key (kbd "C-c g") #'grep)     | 全局绑键                        |                                   |
+| 键盘映射           | (define-key map (kbd "q") #'quit-window)  | 对键盘宏绑定                     |                                   |
+| 文件 I/O          | (insert-file-contents "README.md")        | 把文件内容插入当前缓冲区           |                                   |
+| 字节编译           | (byte-compile-file "foo.el")              | 将 elisp 编译成 .elc            |                                   |
+| 建议(Advice)      | (advice-add 'find-file :after #'my-log)   | 在函数后附加行为                 |                                   |
+| 建议(Advice)      | (advice-remove 'find-file #'my-log)       | 移除 advice                    |                                   |
+| 错误处理           | (condition-case err body (error handler)) | 捕获异常                        |                                   |
+| Timer & idle      | (run-at-time "5 sec" nil #'message "Hi")  | 一次性计时器                     |                                   |
+| Timer & idle      | (run-with-idle-timer 2 nil #'save-buffer) | 空闲时执行                      |                                   |
+| 进程              | (start-process "name" "*buf*" "cmd" "arg")  | 后台进程                        |                                   |
+| 进程              | (process-send-string proc "input")        | 写入进程                        |                                   |
+| 外部调用           | (shell-command-to-string "ls")            | 获取 shell 命令输出              |                                   |
+| 包管理             | (package-refresh-contents)                | 刷新 ELPA 索引                  |                                   |
+| 包管理             | (package-install 'use-package)            | 安装包                          | use-package 常用                  |
+| Org 相关          | (org-babel-tangle)                        | 抽取源码块生成文件                |                                   |
+| Org 相关          | (org-agenda)                              | 打开 agenda 视图                |                                   |
+| 补全 & Minibuffer | (completing-read "Pick: " '("a" "b"))     | 从列表补全                      |                                   |
+| 项目 & 文件树      | (project-current)                         | 返回当前项目                     |                                   |
+| 项目 & 文件树      | (project-files proj)                      | 列出项目文件                     |                                   |
+| 调试              | (debug-on-error t)                        | 出现错误时进入调试器              | setq 变量                         |
+| 调试              | (edebug-defun)                            | Instrument 当前 defun 并逐步调试 |                                   |
+| 文档              | (describe-function #'foo)                 | 查看函数文档                     | C-h f                             |
+| 文档              | (describe-variable 'foo)                  | 查看变量文档                     | C-h v                             |
+
