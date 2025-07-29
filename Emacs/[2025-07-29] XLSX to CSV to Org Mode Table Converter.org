@@ -13,7 +13,7 @@
 
 * XLSX to CSV to Org Mode Table Converter
 ** excel to csv
-这是一个使用纯 Emacs Lisp 实现的 XLSX 到 CSV 转换器。它不依赖外部工具（除了可选的 unzip），可以处理多工作表文件，支持共享字符串，并与 Dired 集成。原作: https://github.com/theesfeld/xlsx-to-csv，但是无效。
+这是一个使用纯 Emacs Lisp 实现的 XLSX 到 CSV 转换器。它不依赖外部工具（除了可选的 unzip），可以处理多工作表文件，支持共享字符串，并与 Dired 集成。原作: https://github.com/theesfeld/xlsx-to-csv, 但是无效。
 
 *** 主要特性
 - 纯 Elisp 实现（Emacs 30.1+）
