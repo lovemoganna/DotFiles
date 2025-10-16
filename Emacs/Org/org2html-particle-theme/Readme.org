@@ -2,7 +2,9 @@
 #+AUTHOR: revolt
 #+DATE: <2025-10-16 Thu 23:47>
 #+OPTIONS: toc:3 num:t ^:nil html-postamble:nil
-#+SETUPFILE: https://raw.githubusercontent.com/lovemoganna/org2html-particle-theme/main/theme-setup.org
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="assets/org.css" />
+#+HTML_HEAD: <script src="assets/org.js"></script>
+# #+SETUPFILE: https://raw.githubusercontent.com/lovemoganna/DotFiles/refs/heads/main/Emacs/Org/org2html-particle-theme/theme-setup.org
 
 * 🚀 快速开始 - 5分钟搞定
 
@@ -113,8 +115,8 @@ cd org2html-particle-theme
 3. 在 Org 文件中添加：
 
 #+BEGIN_SRC org
-,#+HTML_HEAD: <link rel="stylesheet" href="org.css" />
-,#+HTML_HEAD: <script src="palantir-wiki-enhanced.js"></script>
+  ,#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="assets/org.css" />
+  ,#+HTML_HEAD: <script src="assets/org.js"></script>
 #+END_SRC
 
 4. 导出 HTML（=C-c C-e h h=）
