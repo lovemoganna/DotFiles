@@ -1,0 +1,53 @@
+/* =====================================================
+   Org Mode Three.js 固定粒子背景 - 完整优化版
+   ===================================================== */
+
+/* ==================== 1. 全局重置 ==================== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  /* 确保 body 至少占满视口 */
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ==================== 2. 粒子背景层 ==================== */
+.webgl-particles-bg {
+  /* 固定定位 - 关键！ */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  
+  /* 层级控制 */
+  z-index: -999 !important;
+  
+  /* 禁止交互 */
+  pointer-events: none !important;
+  
+  /* 性能优化 */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  
+  /* 样式重置 */
+  outline: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: block;
+  
+  /* 防止被隐藏 */
+  opacity: 1 !important;
+  visibility: visible !important;
+}
