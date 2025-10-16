@@ -25,7 +25,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 * 效果
 
-![image](https://telegraph-image-ahu.pages.dev/file/AgACAgEAAyEGAAS7bUuyAAMFaPEK9JM3lECVMWyZwvTotbB0HMEAAhkLaxvoj4lHlyD3Ho4Mly0BAAMCAAN3AAM2BA.png)
+#+ATTR_HTML: :width 800px
+[[https://telegraph-image-ahu.pages.dev/file/AgACAgEAAyEGAAS7bUuyAAMFaPEK9JM3lECVMWyZwvTotbB0HMEAAhkLaxvoj4lHlyD3Ho4Mly0BAAMCAAN3AAM2BA.png]]
 
 * Setup                                                                               :noexport:
 #+begin_src emacs-lisp :exports results :results silent
