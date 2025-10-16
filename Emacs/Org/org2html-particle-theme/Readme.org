@@ -1,0 +1,794 @@
+#+TITLE: org2html-particle-theme
+#+AUTHOR: revolt
+#+DATE: <2025-10-16 Thu 23:47>
+#+OPTIONS: toc:3 num:t ^:nil html-postamble:nil
+#+SETUPFILE: https://raw.githubusercontent.com/lovemoganna/org2html-particle-theme/main/theme-setup.org
+
+* 🚀 快速开始 - 5分钟搞定
+
+#+BEGIN_QUOTE
+*别慌！* 这可能是你见过最简单的 Org Mode 主题配置。
+我们的目标是让你在 5 分钟内拥有一个炫酷的知识库网站。
+#+END_QUOTE
+
+** 第一步：下载文件
+
+#+BEGIN_SRC bash
+# 克隆仓库（或者直接下载zip）
+git clone https://github.com/your-repo/org2html-particle-theme.git
+cd org2html-particle-theme
+#+END_SRC
+
+你只需要这三个文件：
+- =org.css= - 主题样式
+- =palantir-wiki-enhanced.js= - 增强功能
+- =your-org-file.org= - 你的 Org 文档
+
+** 第二步：配置 Org 文件头部
+
+在你的 =.org= 文件开头添加这些：
+
+#+BEGIN_SRC org
+,#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="org.css" />
+,#+HTML_HEAD: <script src="palantir-wiki-enhanced.js"></script>
+#+END_SRC
+
+** 第三步：导出 HTML
+
+在 Emacs 中按 =C-c C-e h h= 导出 HTML，然后在浏览器中打开。
+
+*搞定！* 🎉 
+
+你应该能看到：
+- ✨ 炫酷的粒子背景动画
+- 📚 左侧固定的导航目录
+- 🎨 Monokai 暗色主题
+- ⌨️ Vim 风格快捷键
+- 🔍 全局搜索功能
+
+* ✨ 核心特性 - 为什么选择这个主题？
+
+** 🌌 Three.js 粒子背景
+- 20 万个动态粒子（移动端自动降低到 5 万）
+- 固定定位，不影响页面滚动
+- 性能优化，GPU 加速
+- 自适应屏幕尺寸
+
+** 📖 智能章节切换
+#+BEGIN_QUOTE
+*这是重点！* 不同于传统的长页面滚动，我们实现了类似 SPA 的章节切换。
+#+END_QUOTE
+
+*** 工作原理
+- 默认只显示第一个章节（可配置显示层级）
+- 点击目录链接，平滑切换到对应章节
+- 使用 CSS =:has()= 和 =:target= 伪类实现
+- 无刷新体验，保持页面状态
+
+*** 配置显示层级
+在 CSS 中设置（或通过快捷键 =Alt+2-6= 动态切换）：
+
+#+BEGIN_SRC css
+:root {
+    --default-section-level: 3;  /* 2-6 可选 */
+}
+#+END_SRC
+
+** ⌨️ Vim 风格导航
+| 快捷键     | 功能           | 说明                 |
+|------------+----------------+----------------------|
+| =Alt+J=    | 下一个同级节点 | 水平导航             |
+| =Alt+K=    | 上一个同级节点 | 水平导航             |
+| =Alt+L=    | 下一个父级节点 | 垂直导航（向下一层） |
+| =Alt+H=    | 上一个父级节点 | 垂直导航（向上一层） |
+| =Alt+B/F=  | 平滑滚动       | 缓慢上/下滚动        |
+| =Alt+T=    | 返回顶部       | 快速回到文档开头     |
+| =Alt+O=    | 全局搜索       | 打开搜索界面         |
+| =Alt+C=    | 折叠目录       | 移动端友好           |
+| =Alt+2-6=  | 切换层级       | 动态改变显示层级     |
+
+** 🔍 全局搜索
+- 实时搜索所有标题和段落
+- 高亮匹配内容
+- 键盘导航（↑↓ 选择，Enter 跳转）
+- 模糊匹配支持
+
+** 🎨 Monokai 主题
+- 深色护眼配色
+- 语法高亮优化
+- 代码块一键复制
+- 60+ 编程语言支持
+
+** 📱 完全响应式
+- 移动端自动切换为垂直布局
+- 触摸优化
+- 性能自适应（移动端减少粒子数）
+
+* 📦 安装配置 - 详细步骤
+
+** 方案 A：最简单（推荐新手）
+
+1. 下载 [[https://github.com/your-repo/org2html-particle-theme/releases][最新 Release]]
+2. 解压到你的项目目录
+3. 在 Org 文件中添加：
+
+#+BEGIN_SRC org
+,#+HTML_HEAD: <link rel="stylesheet" href="org.css" />
+,#+HTML_HEAD: <script src="palantir-wiki-enhanced.js"></script>
+#+END_SRC
+
+4. 导出 HTML（=C-c C-e h h=）
+
+** 方案 B：自定义配置（高级用户）
+
+*** 1. 自定义粒子效果
+
+在 =palantir-wiki-enhanced.js= 之前添加配置：
+
+#+BEGIN_SRC html
+<script>
+window.PALANTIR_CONFIG = {
+    enableParticles: true,      // 是否启用粒子
+    enableWikiEnhance: true,    // 是否启用增强功能
+    debug: false,               // 调试模式
+    
+    // 可以在 JS 加载后通过 API 调整粒子参数
+};
+</script>
+<script src="palantir-wiki-enhanced.js"></script>
+
+<script>
+// 自定义粒子配置
+document.addEventListener('palantir-wiki-ready', () => {
+    window.PalantirWiki.particles.updateConfig({
+        count: 100000,           // 粒子数量
+        innerColor: '#ff0000',   // 内圈颜色
+        outerColor: '#0000ff',   // 外圈颜色
+        autoRotateSpeed: 0.2     // 旋转速度
+    });
+});
+</script>
+#+END_SRC
+
+*** 2. 自定义主题颜色
+
+编辑 =org.css= 的 =:root= 部分：
+
+#+BEGIN_SRC css
+:root {
+    /* 修改强调色 */
+    --monokai-cyan: #66D9EF;      /* 链接颜色 */
+    --monokai-pink: #F92672;      /* 标题颜色 */
+    --monokai-green: #A6E22E;     /* 代码颜色 */
+    
+    /* 修改布局 */
+    --toc-width: 300px;           /* 目录宽度 */
+    --content-max-width: 1600px;  /* 内容最大宽度 */
+    
+    /* 修改默认显示层级 */
+    --default-section-level: 3;   /* 2-6 */
+}
+#+END_SRC
+
+*** 3. 禁用粒子背景
+
+如果你只想要增强功能，不要粒子：
+
+#+BEGIN_SRC html
+<script>
+window.PALANTIR_CONFIG = {
+    enableParticles: false,     // ✅ 关闭粒子
+    enableWikiEnhance: true
+};
+</script>
+<script src="palantir-wiki-enhanced.js"></script>
+#+END_SRC
+
+或者在 CSS 中隐藏：
+
+#+BEGIN_SRC css
+.webgl-particles-bg {
+    display: none !important;
+}
+#+END_SRC
+
+** 方案 C：集成到 Emacs 配置
+
+*** 使用 org-publish
+
+#+BEGIN_SRC emacs-lisp
+(require 'ox-publish)
+
+(setq org-publish-project-alist
+      '(("my-wiki"
+         :base-directory "~/org/wiki/"
+         :publishing-directory "~/org/wiki/html/"
+         :recursive t
+         :publishing-function org-html-publish-to-html
+         
+         ;; ✅ 添加主题文件
+         :html-head-include-default-style nil
+         :html-head-include-scripts nil
+         :html-head "<link rel=\"stylesheet\" href=\"org.css\" />
+                     <script src=\"palantir-wiki-enhanced.js\"></script>"
+         
+         ;; ✅ 额外配置（可选）
+         :html-head-extra "<script>
+                             window.PALANTIR_CONFIG = {
+                                 enableParticles: true,
+                                 debug: false
+                             };
+                           </script>")))
+
+;; 发布
+(org-publish "my-wiki")
+#+END_SRC
+
+*** 使用 org-html-themes（推荐）
+
+#+BEGIN_SRC emacs-lisp
+(use-package org-html-themes
+  :config
+  ;; 设置自定义主题路径
+  (setq org-html-themes-dir "~/path/to/org2html-particle-theme/")
+  
+  ;; 在 org 文件中使用
+  ;; #+SETUPFILE: ~/path/to/org2html-particle-theme/setup.org
+  )
+#+END_SRC
+
+创建 =setup.org= 文件：
+
+#+BEGIN_SRC org
+,#+HTML_HEAD: <link rel="stylesheet" href="org.css" />
+,#+HTML_HEAD: <script src="palantir-wiki-enhanced.js"></script>
+,#+OPTIONS: toc:3 num:t html-style:nil
+#+END_SRC
+
+* 🎯 使用指南 - 实战技巧
+
+** 创建多层级文档
+
+#+BEGIN_SRC org
+,* 第一章 Web 开发基础
+这是第一章的内容...
+
+,** 1.1 HTML 基础
+HTML 的介绍...
+
+,*** 1.1.1 标签系统
+详细讲解标签...
+
+,** 1.2 CSS 基础
+CSS 的介绍...
+
+,* 第二章 JavaScript 进阶
+这是第二章的内容...
+#+END_SRC
+
+默认配置（=--default-section-level: 3=）下：
+- 初始显示：第一章 → 1.1 → 1.1.1
+- 点击"1.2"：切换到 1.2 及其子内容
+- 点击"第二章"：切换到第二章全部内容
+
+** 添加代码块
+
+#+BEGIN_SRC org
+,#+BEGIN_SRC python
+def fibonacci(n):
+    """计算斐波那契数列"""
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+print(fibonacci(10))
+,#+END_SRC
+#+END_SRC
+
+效果：
+- 自动显示语言标签（🐍 Python）
+- 右下角出现复制按钮（📋）
+- 语法高亮（如果启用了 highlight.js）
+
+** 使用提示框
+
+在 CSS 中我们预设了四种提示框样式：
+
+#+BEGIN_SRC org
+,#+BEGIN_wiki-note
+这是一个信息提示框。
+,#+END_wiki-note
+
+,#+BEGIN_wiki-warning
+这是一个警告提示框。
+,#+END_wiki-warning
+
+,#+BEGIN_wiki-danger
+这是一个危险提示框。
+,#+END_wiki-danger
+
+,#+BEGIN_wiki-success
+这是一个成功提示框。
+,#+END_wiki-success
+#+END_SRC
+
+或者使用 HTML：
+
+#+BEGIN_SRC org
+,#+BEGIN_EXPORT html
+<div class="wiki-note">
+  <strong>💡 提示：</strong> 这里是重点内容！
+</div>
+,#+END_EXPORT
+#+END_SRC
+
+** 插入图片
+
+#+BEGIN_SRC org
+,#+CAPTION: 这是图片说明
+,#+NAME: fig:demo
+[[./images/demo.png]]
+#+END_SRC
+
+** 创建表格
+
+#+BEGIN_SRC org
+| 功能       | 快捷键  | 说明     |
+|------------+---------+----------|
+| 下一节点   | Alt+J   | Vim 风格 |
+| 上一节点   | Alt+K   | Vim 风格 |
+| 全局搜索   | Alt+O   | 模糊搜索 |
+#+END_SRC
+
+* 🔧 API 文档 - 高级定制
+
+** JavaScript API
+
+主题通过 =window.PalantirWiki= 暴露了丰富的 API：
+
+*** 基础控制
+
+#+BEGIN_SRC javascript
+// 滚动控制
+PalantirWiki.scrollToTop();              // 返回顶部
+PalantirWiki.scrollToBottom();           // 滚动到底部
+PalantirWiki.scrollToElement('#section-1'); // 滚动到指定元素
+
+// 层级控制
+PalantirWiki.setSectionLevel(3);         // 设置显示层级（2-6）
+PalantirWiki.getSectionLevel();          // 获取当前层级
+
+// 搜索控制
+PalantirWiki.openSearch();               // 打开搜索
+PalantirWiki.closeSearch();              // 关闭搜索
+
+// 导航控制
+PalantirWiki.nextSibling();              // 下一个同级节点
+PalantirWiki.prevSibling();              // 上一个同级节点
+PalantirWiki.nextParent();               // 下一个父级节点
+PalantirWiki.prevParent();               // 上一个父级节点
+#+END_SRC
+
+*** 粒子背景控制
+
+#+BEGIN_SRC javascript
+// 开关粒子背景
+PalantirWiki.particles.toggle(true);     // 启用
+PalantirWiki.particles.toggle(false);    // 禁用
+
+// 获取粒子实例
+const particles = PalantirWiki.particles.instance;
+
+// 更新粒子配置
+PalantirWiki.particles.updateConfig({
+    count: 150000,                        // 粒子数量
+    innerColor: '#00ff00',               // 内圈颜色
+    outerColor: '#0000ff',               // 外圈颜色
+    autoRotateSpeed: 0.3,                // 旋转速度
+    branches: 3                          // 分支数量
+});
+
+// 获取粒子状态
+console.log(particles.getStatus());
+#+END_SRC
+
+*** 高级配置
+
+#+BEGIN_SRC javascript
+// 设置滚动偏移量
+PalantirWiki.setScrollOffset(120);       // 滚动时距顶部120px
+
+// 设置平滑滚动步长
+PalantirWiki.setScrollStep(150);         // Alt+B/F 滚动距离
+
+// 启用/禁用章节切换模式
+PalantirWiki.toggleSectionMode(true);    // 启用
+PalantirWiki.toggleSectionMode(false);   // 禁用（传统滚动）
+
+// 刷新目录高亮
+PalantirWiki.refreshTOC();
+
+// 强制重新定位当前章节
+PalantirWiki.repositionCurrent();
+#+END_SRC
+
+*** 调试工具
+
+#+BEGIN_SRC javascript
+// 检查 Z-index 层级
+PalantirWiki.debug.validateZIndexes();
+
+// 检查元素状态
+const status = PalantirWiki.debug.inspectElement('#table-of-contents');
+console.log(status);
+// => { element, zIndex, position, display, visibility, opacity }
+
+// 获取完整状态
+const fullStatus = PalantirWiki.debug.getStatus();
+console.log(fullStatus);
+// => { wiki: {...}, particles: {...} }
+#+END_SRC
+
+** 事件监听
+
+#+BEGIN_SRC javascript
+// 监听初始化完成事件
+document.addEventListener('palantir-wiki-ready', (e) => {
+    console.log('主题已加载！', e.detail);
+    // => { version, particlesEnabled, wikiEnhanceEnabled, ... }
+    
+    // 在这里执行你的自定义代码
+    PalantirWiki.setSectionLevel(4);
+});
+#+END_SRC
+
+** CSS 变量控制
+
+通过 JavaScript 动态修改 CSS 变量：
+
+#+BEGIN_SRC javascript
+// 改变主题颜色
+document.documentElement.style.setProperty('--monokai-cyan', '#ff0000');
+
+// 改变布局
+document.documentElement.style.setProperty('--toc-width', '350px');
+
+// 改变默认层级
+document.body.setAttribute('data-section-level', '4');
+#+END_SRC
+
+* 📚 常见问题 - FAQ
+
+** Q1: 粒子背景不显示？
+
+*** 检查清单：
+1. 确认浏览器支持 WebGL（打开控制台查看错误）
+2. 检查 Canvas 是否被创建：
+   #+BEGIN_SRC javascript
+   console.log(document.querySelector('.webgl-particles-bg'));
+   #+END_SRC
+3. 检查是否被禁用：
+   #+BEGIN_SRC javascript
+   console.log(window.PALANTIR_CONFIG?.enableParticles);
+   #+END_SRC
+4. 查看控制台错误信息
+
+*** 解决方案：
+#+BEGIN_SRC javascript
+// 手动创建粒子背景
+window.PalantirWiki.particles.toggle(true);
+
+// 或者重新初始化
+window.orgParticlesBg = new OrgParticlesBackground();
+window.orgParticlesBg.init();
+#+END_SRC
+
+** Q2: 章节切换不工作？
+
+*** 可能原因：
+1. 浏览器不支持 CSS =:has()= 伪类（Safari < 15.4, Firefox < 121）
+2. Org 文档结构不符合预期
+
+*** 解决方案：
+
+**** 检查浏览器支持：
+#+BEGIN_SRC javascript
+console.log(CSS.supports('selector(:has(*))'));
+// => true 表示支持
+#+END_SRC
+
+**** 自动降级（已内置）：
+主题会自动检测并启用 JS 回退模式，添加 =.no-has= 类到 =body=。
+
+**** 手动触发：
+#+BEGIN_SRC javascript
+// 强制启用 JS 模式
+document.body.classList.add('no-has');
+#+END_SRC
+
+** Q3: 移动端性能问题？
+
+*** 优化建议：
+
+1. *减少粒子数量*（已自动处理）：
+   #+BEGIN_SRC javascript
+   PalantirWiki.particles.updateConfig({
+       count: 30000  // 移动端推荐 3-5 万
+   });
+   #+END_SRC
+
+2. *禁用粒子背景*：
+   #+BEGIN_SRC javascript
+   PalantirWiki.particles.toggle(false);
+   #+END_SRC
+
+3. *使用静态背景*：
+   #+BEGIN_SRC css
+   body {
+       background: linear-gradient(135deg, #1e1f1c 0%, #272822 100%);
+   }
+   .webgl-particles-bg {
+       display: none !important;
+   }
+   #+END_SRC
+
+** Q4: 如何自定义快捷键？
+
+目前快捷键是硬编码的，如果你想修改，需要编辑 =palantir-wiki-enhanced.js=：
+
+#+BEGIN_SRC javascript
+// 找到 initKeyboardShortcuts 函数
+function initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // 修改这里的快捷键
+        if (e.altKey && e.key === 'j') {  // 改成其他键
+            // ...
+        }
+    });
+}
+#+END_SRC
+
+或者添加自己的快捷键：
+
+#+BEGIN_SRC javascript
+document.addEventListener('keydown', (e) => {
+    // 自定义：Ctrl+Shift+S 打开搜索
+    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        PalantirWiki.openSearch();
+    }
+});
+#+END_SRC
+
+** Q5: 如何在 GitHub Pages 上部署？
+
+*** 步骤：
+
+1. 创建仓库目录结构：
+   #+BEGIN_SRC bash
+   my-wiki/
+   ├── index.org          # 主页
+   ├── org.css           # 主题样式
+   ├── palantir-wiki-enhanced.js  # 增强脚本
+   └── pages/            # 其他页面
+       ├── page1.org
+       └── page2.org
+   #+END_SRC
+
+2. 批量导出 HTML：
+   #+BEGIN_SRC emacs-lisp
+   (org-publish "my-wiki")
+   #+END_SRC
+
+3. 推送到 GitHub：
+   #+BEGIN_SRC bash
+   git add .
+   git commit -m "Update wiki"
+   git push origin main
+   #+END_SRC
+
+4. 启用 GitHub Pages（Settings → Pages → Source → main branch）
+
+5. 访问 =https://your-username.github.io/my-wiki/=
+
+** Q6: 代码高亮不显示？
+
+主题的代码高亮依赖于你的 Org 配置。推荐使用 =htmlize=：
+
+#+BEGIN_SRC emacs-lisp
+(use-package htmlize
+  :ensure t)
+
+;; 使用内联 CSS（推荐）
+(setq org-html-htmlize-output-type 'inline-css)
+
+;; 或者使用外部 CSS
+(setq org-html-htmlize-output-type 'css)
+#+END_SRC
+
+或者添加 highlight.js：
+
+#+BEGIN_SRC org
+,#+HTML_HEAD: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/monokai.min.css">
+,#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+,#+HTML_HEAD: <script>hljs.highlightAll();</script>
+#+END_SRC
+
+** Q7: 如何禁用目录自动高亮？
+
+#+BEGIN_SRC css
+/* 在你的自定义 CSS 中添加 */
+#table-of-contents a.active {
+    color: inherit !important;
+    background-color: transparent !important;
+    border-left-color: transparent !important;
+    font-weight: normal !important;
+}
+#+END_SRC
+
+或者通过 JS：
+
+#+BEGIN_SRC javascript
+// 移除高亮功能
+document.querySelectorAll('#table-of-contents a').forEach(link => {
+    link.classList.remove('active');
+});
+#+END_SRC
+
+* 🎨 主题定制 - 打造个性化风格
+
+** 预设配色方案
+
+*** 方案 1：经典蓝（默认）
+#+BEGIN_SRC css
+:root {
+    --monokai-cyan: #66D9EF;
+    --monokai-green: #A6E22E;
+    --monokai-pink: #F92672;
+}
+#+END_SRC
+
+*** 方案 2：暖色调
+#+BEGIN_SRC css
+:root {
+    --monokai-cyan: #FF8C42;
+    --monokai-green: #FFD23F;
+    --monokai-pink: #EE4266;
+}
+#+END_SRC
+
+*** 方案 3：冷色调
+#+BEGIN_SRC css
+:root {
+    --monokai-cyan: #00B4D8;
+    --monokai-green: #90E0EF;
+    --monokai-pink: #0077B6;
+}
+#+END_SRC
+
+*** 方案 4：紫色主题
+#+BEGIN_SRC css
+:root {
+    --monokai-cyan: #B794F4;
+    --monokai-green: #9AE6B4;
+    --monokai-pink: #FC8181;
+}
+#+END_SRC
+
+** 自定义粒子效果
+
+*** 效果 1：星空效果
+#+BEGIN_SRC javascript
+PalantirWiki.particles.updateConfig({
+    count: 300000,
+    branches: 1,
+    radius: 10,
+    innerColor: '#ffffff',
+    outerColor: '#000000',
+    autoRotateSpeed: 0.05
+});
+#+END_SRC
+
+*** 效果 2：双螺旋
+#+BEGIN_SRC javascript
+PalantirWiki.particles.updateConfig({
+    count: 100000,
+    branches: 2,
+    radius: 8,
+    innerColor: '#ff0000',
+    outerColor: '#0000ff',
+    autoRotateSpeed: 0.2
+});
+#+END_SRC
+
+*** 效果 3：花朵
+#+BEGIN_SRC javascript
+PalantirWiki.particles.updateConfig({
+    count: 150000,
+    branches: 5,
+    radius: 6,
+    innerColor: '#ff69b4',
+    outerColor: '#4b0082',
+    autoRotateSpeed: 0.15
+});
+#+END_SRC
+
+** 更换字体
+
+*** Google Fonts
+#+BEGIN_SRC org
+,#+HTML_HEAD: <link rel="preconnect" href="https://fonts.googleapis.com">
+,#+HTML_HEAD: <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+#+END_SRC
+
+#+BEGIN_SRC css
+:root {
+    --font-sans: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+#+END_SRC
+
+*** 系统字体
+#+BEGIN_SRC css
+:root {
+    /* macOS/iOS */
+    --font-sans: -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'SF Mono', Monaco, monospace;
+    
+    /* Windows */
+    --font-sans: 'Segoe UI', Tahoma, sans-serif;
+    --font-mono: 'Cascadia Code', 'Consolas', monospace;
+}
+#+END_SRC
+
+* 🤝 贡献指南
+
+我们欢迎所有形式的贡献！
+
+** 报告 Bug
+
+在 [[https://github.com/your-repo/org2html-particle-theme/issues][GitHub Issues]] 中提交问题时，请包含：
+
+1. 浏览器版本
+2. 操作系统
+3. 完整的错误信息（控制台截图）
+4. 最小可复现示例
+
+** 提交功能建议
+
+1. 先搜索是否已有相同建议
+2. 清楚描述你的需求
+3. 解释为什么这个功能有用
+
+** Pull Request
+
+1. Fork 仓库
+2. 创建特性分支（=git checkout -b feature/amazing-feature=）
+3. 提交更改（=git commit -m 'Add amazing feature'=）
+4. 推送到分支（=git push origin feature/amazing-feature=）
+5. 打开 Pull Request
+
+* 📄 许可证
+
+MIT License - 自由使用，欢迎分享！
+
+详见 [[./LICENSE][LICENSE]] 文件。
+
+* 🙏 致谢
+
+- [[https://orgmode.org/][Org Mode]] - 最强大的纯文本组织系统
+- [[https://threejs.org/][Three.js]] - 3D 图形库
+- [[https://www.fast.ai/][fast.ai]] - 教学风格灵感来源
+- 所有贡献者和用户
+
+* 📮 联系我们
+
+- GitHub: [[https://github.com/your-repo/org2html-particle-theme]]
+- Email: your-email@example.com
+- Discord: [[https://discord.gg/your-server]]
+
+#+BEGIN_CENTER
+*Happy Writing! 🚀*
+
+如果这个主题帮到了你，请给我们一个 ⭐ Star！
+#+END_CENTER

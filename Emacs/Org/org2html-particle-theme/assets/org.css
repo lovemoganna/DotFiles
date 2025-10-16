@@ -1,0 +1,1736 @@
+/* =====================================================
+   Org Mode Three.js 固定粒子背景 - 完整优化版
+   ===================================================== */
+
+/* ==================== 1. 全局重置 ==================== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  /* 确保 body 至少占满视口 */
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ==================== 2. 粒子背景层 ==================== */
+.webgl-particles-bg {
+  /* 固定定位 - 关键！ */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  
+  /* 层级控制 */
+  z-index: -999 !important;
+  
+  /* 禁止交互 */
+  pointer-events: none !important;
+  
+  /* 性能优化 */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  
+  /* 样式重置 */
+  outline: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: block;
+  
+  /* 防止被隐藏 */
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ============================================
+   PALANTIR 本体论 WIKI 风格文档系统 - SPA版 v2.3
+   基于 Monokai 主题 | 左侧TOC导航布局
+   ✅ 修正层级显示逻辑 - 点击H*显示其所有子内容
+   ✅ 修复H2间距不一致问题
+   ✅ 修复章节定位居中问题
+   ============================================ */
+
+/* --------------------------------------------
+   【字体导入】Google Fonts
+   -------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Victor+Mono:wght@300;400;500;600;700&display=swap');
+
+/* --------------------------------------------
+   【对象层】设计令牌本体
+   -------------------------------------------- */
+:root {
+    /* ✅ 章节显示控制（核心变量） */
+    --default-section-level: 3;  /* 默认显示h2层级，可选：2, 3, 4, 5, 6 */
+    
+    /* Monokai 配色本体 */
+    --monokai-bg-dark: #272822;
+    --monokai-bg-darker: #1e1f1c;
+    --monokai-bg-darkest: #141511;
+    --monokai-fg-light: #F8F8F2;
+    --monokai-gray: #75715E;
+    --monokai-gray-light: #8e8a75;
+    --monokai-yellow: #E6DB74;
+    --monokai-purple: #AE81FF;
+    --monokai-pink: #F92672;
+    --monokai-green: #A6E22E;
+    --monokai-cyan: #66D9EF;
+    --monokai-orange: #FD971F;
+    
+    /* 语义化色彩系统 */
+    --color-bg-primary: var(--monokai-bg-dark);
+    --color-bg-secondary: var(--monokai-bg-darker);
+    --color-bg-tertiary: var(--monokai-bg-darkest);
+    --color-bg-elevated: #2d2e27;
+    --color-text-primary: var(--monokai-fg-light);
+    --color-text-muted: var(--monokai-gray);
+    --color-text-dimmed: var(--monokai-gray-light);
+    --color-accent-primary: var(--monokai-cyan);
+    --color-accent-secondary: var(--monokai-green);
+    --color-accent-danger: var(--monokai-pink);
+    --color-accent-warning: var(--monokai-orange);
+    --color-accent-info: var(--monokai-purple);
+    --color-accent-success: var(--monokai-yellow);
+    
+    /* Wiki 布局本体 */
+    --toc-width: 280px;
+    --content-width: 90%;
+    --content-max-width: 1600px;
+    --gap-primary: 1rem;
+    
+    /* 空间尺度本体 */
+    --space-unit: 0.25rem;
+    --space-xs: calc(var(--space-unit) * 1);
+    --space-sm: calc(var(--space-unit) * 2);
+    --space-md: calc(var(--space-unit) * 4);
+    --space-lg: calc(var(--space-unit) * 6);
+    --space-xl: calc(var(--space-unit) * 8);
+    --space-2xl: calc(var(--space-unit) * 12);
+    
+    /* 字体系统本体 */
+    --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Victor Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 2rem;
+    --font-size-4xl: 2.5rem;
+    
+    /* 字重本体 */
+    --font-weight-light: 300;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-bold: 700;
+    --font-weight-black: 900;
+    
+    /* 圆角系统本体 */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    
+    /* 阴影系统本体 */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    
+    /* 过渡动画本体 */
+    --transition-fast: 0.15s ease-in-out;
+    --transition-base: 0.2s ease-in-out;
+    --transition-slow: 0.3s ease-in-out;
+    --transition-page: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* 翻页动画令牌 */
+    --flip-transition-duration: 160ms;
+    --flip-transition-ease: cubic-bezier(0.2, 0, 0, 1);
+    --flip-max-height: 300vh;
+    --flip-fade-opacity: 0;
+    
+    /* Z-index 层级本体 */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal: 1040;
+    --z-popover: 1050;
+    --z-tooltip: 1060;
+    
+    /* 行高本体 */
+    --line-height-tight: 1.3;
+    --line-height-normal: 1.6;
+    --line-height-relaxed: 1.8;
+    --line-height-loose: 2;
+}
+
+/* --------------------------------------------
+   【对象层】全局重置与基础样式
+   -------------------------------------------- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--space-xl);
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+}
+
+/* --------------------------------------------
+   【架构层】Wiki 布局容器系统
+   -------------------------------------------- */
+
+/* 主容器 - 使用 Grid 布局 */
+#content {
+    display: grid;
+    grid-template-columns: var(--toc-width) 1fr;
+    grid-template-areas: "toc main";
+    gap: var(--gap-primary);
+     max-width: var(--content-max-width); 
+    width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--space-lg) var(--space-md);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* --------------------------------------------
+   【对象层】目录导航系统 (TOC)
+   -------------------------------------------- */
+
+/* TOC 容器 */
+#table-of-contents {
+    grid-area: toc;
+    position: fixed;
+    top: var(--space-lg);
+    height: fit-content;
+    left: 0px;
+    max-height: calc(100vh - var(--space-xl));
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: linear-gradient(135deg, 
+        var(--color-bg-secondary) 0%, 
+        var(--color-bg-tertiary) 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg) var(--space-md);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(117, 113, 94, 0.3);
+}
+
+/* TOC 标题 */
+#table-of-contents h2,
+#table-of-contents .title {
+    color: var(--color-accent-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 2px solid var(--color-accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* TOC 内部不应用全局 h2 样式 */
+#table-of-contents h2 {
+    background: none !important;
+    border-left: none !important;
+    box-shadow: none !important;
+    padding: 0 0 var(--space-sm) 0 !important;
+    margin-top: 0 !important;
+    border-radius: 0 !important;
+    line-height: var(--line-height-tight) !important;
+}
+
+/* TOC 列表容器 */
+#table-of-contents > div,
+#table-of-contents nav {
+    margin-top: var(--space-md);
+}
+
+/* TOC 列表样式 */
+#table-of-contents ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#table-of-contents li {
+    margin: var(--space-xs) 0;
+    position: relative;
+}
+
+/* TOC 链接样式 */
+#table-of-contents a {
+    display: block;
+    color: var(--color-text-dimmed);
+    text-decoration: none;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid transparent;
+    border-bottom: none !important;
+    transition: all var(--transition-base);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-tight);
+    position: relative;
+    overflow: hidden;
+}
+
+/* TOC 链接悬停 */
+#table-of-contents a:hover {
+    color: var(--color-accent-primary);
+    background-color: rgba(102, 217, 239, 0.1);
+    border-left-color: var(--color-accent-primary);
+    padding-left: calc(var(--space-md) + var(--space-xs));
+    border-bottom: none !important;
+}
+
+/* ✅ TOC 链接激活状态 - 通过JS添加 */
+#table-of-contents a.active {
+    color: var(--color-accent-warning);
+    background-color: rgba(253, 151, 31, 0.15);
+    border-left-color: var(--color-accent-warning);
+    font-weight: var(--font-weight-medium);
+}
+
+/* TOC 嵌套层级样式 */
+#table-of-contents ul ul {
+    margin-left: var(--space-md);
+    margin-top: var(--space-xs);
+    padding-left: var(--space-sm);
+    border-left: 1px solid rgba(117, 113, 94, 0.2);
+}
+
+#table-of-contents ul ul a {
+    font-size: var(--font-size-xs);
+    padding: var(--space-xs) var(--space-sm);
+}
+
+#table-of-contents ul ul ul a {
+    opacity: 0.8;
+}
+
+/* TOC 层级指示器 */
+#table-of-contents li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 0;
+    background-color: var(--color-accent-secondary);
+    border-radius: 2px;
+    transition: height var(--transition-base);
+}
+
+#table-of-contents li:hover::before {
+    height: 60%;
+}
+
+/* TOC 滚动条样式 */
+#table-of-contents::-webkit-scrollbar {
+    width: 6px;
+}
+
+#table-of-contents::-webkit-scrollbar-track {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+#table-of-contents::-webkit-scrollbar-thumb {
+    background: var(--color-text-muted);
+    border-radius: var(--radius-sm);
+}
+
+#table-of-contents::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-primary);
+}
+
+/* --------------------------------------------
+   【对象层】主内容区域系统
+   ✅ v2.3 修正版：修复Grid布局与章节切换冲突
+   -------------------------------------------- */
+
+/* ✅ 主内容容器 - 修复Grid定位 */
+#content > *:not(#table-of-contents) {
+    grid-column: 2;
+    position: absolute;
+    top: 15rem;
+    left: 22rem;
+}
+
+/* ✅ 章节容器 - 确保隐藏时不占空间 */
+.outline-2 {
+    grid-column: 2;
+}
+
+/* ✅ 关键修正：多层级章节单页切换（可配置 H2–H6） */
+/* 采用 .outline-2..6 与 h2..h6 + :target 组合；通过 body[data-section-level] 控制层级 */
+/* 过渡采用 opacity + max-height（display 无法过渡）*/
+
+/***** 通用可见性基线 *****/
+.outline-2, .outline-3, .outline-4, .outline-5, .outline-6 {
+    transition: opacity var(--flip-transition-duration) var(--flip-transition-ease),
+                max-height var(--flip-transition-duration) var(--flip-transition-ease);
+    will-change: opacity, max-height;
+    margin-bottom: var(--space-xl);
+}
+
+/***** Level 2（默认/未设置 data-section-level） *****/
+/* 无 hash：仅显示首个 H2 容器 */
+body:not([data-section-level]):not(:has(h2:target)) .outline-2,
+body[data-section-level="2"]:not(:has(h2:target)) .outline-2 {
+    opacity: var(--flip-fade-opacity);
+    max-height: 0;
+    overflow: clip;
+    pointer-events: none;
+    margin-bottom: 0;  /* ✅ 隐藏时清除下边距 */
+}
+body:not([data-section-level]):not(:has(h2:target)) .outline-2:first-of-type,
+body[data-section-level="2"]:not(:has(h2:target)) .outline-2:first-of-type {
+    opacity: 1;
+    max-height: var(--flip-max-height);
+    pointer-events: auto;
+    margin-bottom: var(--space-xl);  /* ✅ 显示时恢复下边距 */
+}
+/* 有 hash：仅显示包含目标 h2 的 H2 容器，及其子级自然可见 */
+body:not([data-section-level]) .outline-2:not(:has(> h2:target)),
+body[data-section-level="2"] .outline-2:not(:has(> h2:target)) {
+    opacity: var(--flip-fade-opacity);
+    max-height: 0;
+    overflow: clip;
+    pointer-events: none;
+    margin-bottom: 0;  /* ✅ 隐藏时清除下边距 */
+}
+body:not([data-section-level]) .outline-2:has(> h2:target),
+body[data-section-level="2"] .outline-2:has(> h2:target) {
+    opacity: 1;
+    max-height: var(--flip-max-height);
+    pointer-events: auto;
+    margin-bottom: var(--space-xl);  /* ✅ 显示时恢复下边距 */
+}
+
+/***** Level 3（父 H2 可见，仅目标 H3 分支展开） *****/
+/* 无 hash：H2 首节 ▶ 其首个 H3 分支 */
+body[data-section-level="3"]:not(:has(h3:target)) .outline-2 {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="3"]:not(:has(h3:target)) .outline-2:first-of-type { 
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="3"]:not(:has(h3:target)) .outline-2:first-of-type .outline-3 {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="3"]:not(:has(h3:target)) .outline-2:first-of-type .outline-3:first-of-type {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+/* 有 hash：仅保留目标 H3 分支与其父 H2；点击更高层级也应生效（H2 展开全部子级） */
+body[data-section-level="3"] .outline-2:not(:has(h3:target)):not(:has(> h2:target)):not(:has(h4:target)):not(:has(h5:target)):not(:has(h6:target)) {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="3"] .outline-2:has(h3:target),
+body[data-section-level="3"] .outline-2:has(> h2:target),
+body[data-section-level="3"] .outline-2:has(h4:target),
+body[data-section-level="3"] .outline-2:has(h5:target),
+body[data-section-level="3"] .outline-2:has(h6:target) {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="3"] .outline-3:not(:has(> h3:target)):not(:has(h4:target)):not(:has(h5:target)):not(:has(h6:target)) {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="3"] .outline-3:has(> h3:target),
+body[data-section-level="3"] .outline-3:has(h4:target),
+body[data-section-level="3"] .outline-3:has(h5:target),
+body[data-section-level="3"] .outline-3:has(h6:target) {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="3"] .outline-2:has(> h2:target) .outline-3 {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+
+/***** Level 4（父 H2/H3 可见，仅目标 H4 分支展开） *****/
+body[data-section-level="4"]:not(:has(h4:target)) .outline-2 {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="4"]:not(:has(h4:target)) .outline-2:first-of-type {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="4"]:not(:has(h4:target)) .outline-2:first-of-type .outline-3 {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="4"]:not(:has(h4:target)) .outline-2:first-of-type .outline-3:first-of-type {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="4"]:not(:has(h4:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4 {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="4"]:not(:has(h4:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="4"] .outline-2:not(:has(> h2:target)):not(:has(> h3:target)):not(:has(h4:target)):not(:has(h5:target)):not(:has(h6:target)) {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="4"] .outline-2:has(> h2:target),
+body[data-section-level="4"] .outline-2:has(> h3:target),
+body[data-section-level="4"] .outline-2:has(h4:target),
+body[data-section-level="4"] .outline-2:has(h5:target),
+body[data-section-level="4"] .outline-2:has(h6:target) {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="4"] .outline-3:not(:has(> h3:target)):not(:has(h4:target)):not(:has(h5:target)):not(:has(h6:target)) {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="4"] .outline-3:has(> h3:target),
+body[data-section-level="4"] .outline-3:has(h4:target),
+body[data-section-level="4"] .outline-3:has(h5:target),
+body[data-section-level="4"] .outline-3:has(h6:target) {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="4"] .outline-4:not(:has(> h4:target)):not(:has(h5:target)):not(:has(h6:target)) {
+    opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0;
+}
+body[data-section-level="4"] .outline-4:has(> h4:target),
+body[data-section-level="4"] .outline-4:has(h5:target),
+body[data-section-level="4"] .outline-4:has(h6:target) {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="4"] .outline-2:has(> h2:target) .outline-3,
+body[data-section-level="4"] .outline-2:has(> h2:target) .outline-4 {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+body[data-section-level="4"] .outline-3:has(> h3:target) .outline-4 {
+    opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl);
+}
+
+/***** Level 5 & 6（省略，结构同上） *****/
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2:first-of-type .outline-3 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2:first-of-type .outline-3:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type .outline-5 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="5"]:not(:has(h5:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type .outline-5:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="5"] .outline-2:not(:has(h5:target)),
+body[data-section-level="5"] .outline-3:not(:has(h5:target)),
+body[data-section-level="5"] .outline-4:not(:has(h5:target)),
+body[data-section-level="5"] .outline-5:not(:has(> h5:target)) { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="5"] .outline-2:has(h5:target),
+body[data-section-level="5"] .outline-3:has(h5:target),
+body[data-section-level="5"] .outline-4:has(h5:target),
+body[data-section-level="5"] .outline-5:has(> h5:target) { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type .outline-3 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type .outline-3:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type .outline-5 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type .outline-5:first-of-type .outline-6 { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="6"]:not(:has(h6:target)) .outline-2:first-of-type .outline-3:first-of-type .outline-4:first-of-type .outline-5:first-of-type .outline-6:first-of-type { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+body[data-section-level="6"] .outline-2:not(:has(h6:target)),
+body[data-section-level="6"] .outline-3:not(:has(h6:target)),
+body[data-section-level="6"] .outline-4:not(:has(h6:target)),
+body[data-section-level="6"] .outline-5:not(:has(h6:target)),
+body[data-section-level="6"] .outline-6:not(:has(> h6:target)) { opacity: var(--flip-fade-opacity); max-height: 0; overflow: clip; pointer-events: none; margin-bottom: 0; }
+body[data-section-level="6"] .outline-2:has(h6:target),
+body[data-section-level="6"] .outline-3:has(h6:target),
+body[data-section-level="6"] .outline-4:has(h6:target),
+body[data-section-level="6"] .outline-5:has(h6:target),
+body[data-section-level="6"] .outline-6:has(> h6:target) { opacity: 1; max-height: var(--flip-max-height); pointer-events: auto; margin-bottom: var(--space-xl); }
+
+/***** JS 回退（浏览器不支持 :has） *****/
+body.no-has .outline-2, body.no-has .outline-3, body.no-has .outline-4, body.no-has .outline-5, body.no-has .outline-6 {
+    opacity: var(--flip-fade-opacity);
+    max-height: 0;
+    overflow: clip;
+    pointer-events: none;
+    margin-bottom: 0;
+}
+body.no-has [data-active="true"] {
+    opacity: 1;
+    max-height: var(--flip-max-height);
+    pointer-events: auto;
+    margin-bottom: var(--space-xl);
+}
+
+/* ✅ 章节切换动画 */
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 文档标题始终显示 */
+#content > h1.title {
+    display: block !important;
+    grid-column: 2;
+}
+
+/* 文档头部 */
+#preamble {
+    margin-bottom: var(--space-2xl);
+    padding-bottom: var(--space-xl);
+    border-bottom: 2px solid var(--color-text-muted);
+}
+
+/* 文档尾部 */
+#postamble {
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-xl);
+    border-top: 2px solid var(--color-text-muted);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* --------------------------------------------
+   【关系层】链接系统
+   -------------------------------------------- */
+
+a {
+    color: var(--color-accent-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+a:hover {
+    color: var(--color-accent-warning);
+    border-bottom-color: var(--color-accent-warning);
+}
+
+a:active {
+    transform: translateY(1px);
+}
+
+a:visited {
+    color: var(--color-accent-info);
+}
+
+a:focus-visible {
+    outline: 2px solid var(--color-accent-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* 代码内链接 */
+a code {
+    color: var(--color-accent-primary);
+    border: 1px solid var(--color-accent-primary);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    background-color: var(--color-bg-secondary);
+    transition: all var(--transition-base);
+}
+
+a:hover code {
+    background-color: rgba(102, 217, 239, 0.15);
+    border-color: var(--color-accent-warning);
+}
+
+/* --------------------------------------------
+   【对象层】标题层级系统 - v2.3 完全修复版
+   ✅ 修复 first-child 误伤所有容器内H2的问题
+   -------------------------------------------- */
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    line-height: var(--line-height-tight);
+    margin-top: var(--space-xl);
+    margin-bottom: var(--space-md);
+    font-weight: var(--font-weight-bold);
+    position: relative;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+/* ✅ 关键修复：只让文档级别的首个标题无margin，避免误伤容器内的标题 */
+#content > h1:first-of-type {
+    margin-top: 0;
+}
+
+/* ✅ 只让H3-H6在容器内的first-child无margin */
+h3:first-child,
+h4:first-child,
+h5:first-child,
+h6:first-child {
+    margin-top: 8px;
+}
+
+/* H1 - 文档主标题 */
+h1,
+.title {
+    color: var(--color-accent-danger);
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-black);
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-md);
+    border-bottom: 3px solid var(--color-accent-danger);
+    letter-spacing: -0.02em;
+}
+
+/* ✅ H2 - 主章节（统一间距） */
+h2 {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    background: linear-gradient(135deg, 
+        rgba(117, 113, 94, 0.3) 0%, 
+        rgba(45, 46, 39, 0.5) 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--space-lg);
+    margin-top: 9.5rem;      /* ✅ 所有H2统一上边距 3rem */
+    margin-bottom: var(--space-lg);
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid var(--color-accent-secondary);
+    line-height: 1.6;
+    scroll-margin-top: 100px;  /* ✅ 滚动时距离视口顶部140px */
+}
+
+/* ✅ 特殊处理：第一个outline-2容器内的H2 */
+.outline-2:first-of-type > h2 {
+    margin-top: var(--space-xl);  /* ✅ 减小到2rem，但不为0 */
+}
+
+/* ✅ 被target的标题高亮效果 */
+h2:target,
+h3:target,
+h4:target,
+h5:target,
+h6:target {
+    animation: highlight 0.8s ease-in-out;
+}
+
+@keyframes highlight {
+    0%, 100% { 
+        filter: brightness(1);
+    }
+    50% { 
+        filter: brightness(1.3);
+        box-shadow: 0 0 20px rgba(253, 151, 31, 0.5);
+    }
+}
+
+h2:target {
+    background: linear-gradient(135deg, 
+        rgba(253, 151, 31, 0.2) 0%, 
+        rgba(117, 113, 94, 0.3) 100%);
+    border-left-color: var(--color-accent-warning);
+}
+
+/* Org-mode 章节编号对齐优化 */
+h2 .section-number-2,
+h3 .section-number-3,
+h4 .section-number-4,
+h5 .section-number-5,
+h6 .section-number-6 {
+    color: var(--color-accent-warning);
+    background-color: rgba(253, 151, 31, 0.2);
+    font-size: 0.85em;
+    font-weight: var(--font-weight-bold);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    margin-right: var(--space-sm);
+    display: inline-block;
+    border: 1px solid var(--color-accent-warning);
+    vertical-align: middle;
+    line-height: 1.2;
+    transform: translateY(-0.08em);
+}
+
+/* h2 内的链接样式 */
+h2 a {
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    border-radius: 0;
+    display: inline;
+    vertical-align: baseline;
+}
+
+h2 a:hover {
+    color: var(--color-accent-primary);
+    background: none;
+    border-bottom: 1px solid var(--color-accent-primary);
+    transform: none;
+}
+
+/* H3 - 子章节 */
+h3 {
+    color: var(--color-accent-secondary);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    padding-left: var(--space-md);
+    border-left: 3px solid var(--color-accent-secondary);
+    line-height: 1.5;
+    scroll-margin-top: 140px;
+}
+
+h3:target {
+    border-left-color: var(--color-accent-warning);
+    color: var(--color-accent-warning);
+}
+
+h3 .section-number-3 {
+    color: var(--color-accent-info);
+    background-color: rgba(174, 129, 255, 0.2);
+    border-color: var(--color-accent-info);
+}
+
+/* H4 - 小节 */
+h4 {
+    color: var(--color-accent-success);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+    margin-left: var(--space-md);
+    line-height: 1.5;
+    scroll-margin-top: 140px;
+}
+
+h4:target {
+    color: var(--color-accent-warning);
+}
+
+h4 .section-number-4 {
+    color: var(--color-accent-success);
+    background-color: rgba(230, 219, 116, 0.2);
+    border-color: var(--color-accent-success);
+}
+
+/* H5 - 次级小节 */
+h5 {
+    color: var(--color-accent-primary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+    scroll-margin-top: 140px;
+}
+
+h5:target {
+    color: var(--color-accent-warning);
+}
+
+h5 .section-number-5 {
+    color: var(--color-accent-primary);
+    background-color: rgba(102, 217, 239, 0.2);
+    border-color: var(--color-accent-primary);
+}
+
+/* H6 - 最小层级 */
+h6 {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.5;
+    scroll-margin-top: 140px;
+}
+
+h6:target {
+    color: var(--color-accent-warning);
+}
+
+h6 .section-number-6 {
+    color: var(--color-text-muted);
+    background-color: rgba(117, 113, 94, 0.2);
+    border-color: var(--color-text-muted);
+}
+
+/* 标题内链接通用样式 */
+h1 a, h3 a, h4 a, h5 a, h6 a {
+    color: inherit;
+    text-decoration: none;
+    border: none;
+}
+
+h1 a:hover, h3 a:hover, h4 a:hover, h5 a:hover, h6 a:hover {
+    color: var(--color-accent-primary);
+    border-bottom: 1px solid var(--color-accent-primary);
+}
+
+/* --------------------------------------------
+   【对象层】段落与文本内容
+   -------------------------------------------- */
+
+p {
+    margin: var(--space-md) 0;
+    line-height: var(--line-height-relaxed);
+}
+
+p:first-child { margin-top: 0; }
+p:last-child { margin-bottom: 0; }
+
+/* 强调样式 */
+strong, b {
+    color: var(--color-accent-danger);
+    font-weight: var(--font-weight-bold);
+}
+
+em, i {
+    color: var(--color-accent-info);
+    font-style: italic;
+}
+
+del, s {
+    color: var(--color-text-muted);
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+u, ins {
+    color: var(--color-accent-secondary);
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent-secondary);
+    text-decoration-thickness: 2px;
+}
+
+cursor {
+    color: #141511;
+    overflow: hidden;
+    background: #19ff15;
+}
+
+mark,
+.region {
+    color: #00ff4a;
+    background-color: #272822;
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-medium);
+    /* color: var(--color-bg-primary); */
+    /* background-color: var(--color-accent-warning); */
+    /* padding: var(--space-xs) var(--space-sm); */
+    /* border-radius: var(--radius-sm); */
+    /* font-weight: var(--font-weight-medium); */
+}
+
+small {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+sup, sub {
+    font-size: var(--font-size-xs);
+    color: var(--color-accent-info);
+}
+
+abbr[title] {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--color-accent-primary);
+    cursor: help;
+}
+
+/* --------------------------------------------
+   【对象层】列表系统
+   -------------------------------------------- */
+
+ul, ol {
+    margin: var(--space-md) 0;
+    padding-left: var(--space-2xl);
+}
+
+li {
+    margin: var(--space-sm) 0;
+    line-height: var(--line-height-normal);
+}
+
+li::marker {
+    color: var(--color-accent-warning);
+    font-weight: var(--font-weight-bold);
+}
+
+li > ul,
+li > ol {
+    margin-top: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+/* 定义列表 */
+dl {
+    margin: var(--space-md) 0;
+}
+
+dt {
+    color: var(--color-accent-primary);
+    font-weight: var(--font-weight-bold);
+    margin-top: var(--space-md);
+}
+
+dd {
+    margin-left: var(--space-xl);
+    margin-top: var(--space-sm);
+    color: var(--color-text-dimmed);
+    padding-left: var(--space-md);
+    border-left: 2px solid rgba(117, 113, 94, 0.3);
+}
+
+/* 复选框列表 */
+ul.org-ul li input[type="checkbox"] {
+    margin-right: var(--space-sm);
+    cursor: pointer;
+    accent-color: var(--color-accent-secondary);
+}
+
+/* 描述列表增强 */
+dl.org-dl dt {
+    color: var(--color-accent-primary);
+    font-weight: var(--font-weight-bold);
+}
+
+dl.org-dl dd {
+    margin-left: var(--space-xl);
+    padding-left: var(--space-md);
+    border-left: 2px solid rgba(117, 113, 94, 0.3);
+}
+
+/* --------------------------------------------
+   【对象层】引用块
+   -------------------------------------------- */
+
+blockquote {
+    margin: var(--space-lg) 0;
+    padding: var(--space-md) var(--space-lg);
+    border-left: 4px solid var(--color-accent-danger);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    font-style: italic;
+    color: var(--color-text-dimmed);
+    box-shadow: var(--shadow-inset);
+}
+
+blockquote p:first-child { margin-top: 0; }
+blockquote p:last-child { margin-bottom: 0; }
+
+blockquote cite {
+    display: block;
+    margin-top: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    font-style: normal;
+}
+
+blockquote cite::before {
+    content: "— ";
+}
+
+/* 引用块（Org quote） */
+.quote {
+    margin: var(--space-lg) 0;
+    padding: var(--space-md) var(--space-lg);
+    border-left: 4px solid var(--color-accent-primary);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    font-style: italic;
+    color: var(--color-text-dimmed);
+}
+
+/* 诗歌块 */
+.verse {
+    margin: var(--space-lg) 0;
+    padding: var(--space-md) var(--space-lg);
+    border-left: 4px solid var(--color-accent-success);
+    background-color: var(--color-bg-secondary);
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    font-style: italic;
+}
+
+/* 分割线 */
+hr {
+    border: none;
+    border-top: 2px solid var(--color-text-muted);
+    margin: var(--space-2xl) 0;
+    opacity: 0.3;
+}
+
+/* --------------------------------------------
+   【对象层】代码系统
+   -------------------------------------------- */
+
+code, kbd, samp, var {
+    font-family: var(--font-mono);
+    font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+/* 内联代码 */
+code {
+    font-size: 0.9em;
+    color: var(--color-accent-success);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid rgba(117, 113, 94, 0.4);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    white-space: nowrap;
+}
+
+/* 代码块 */
+pre {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid rgba(117, 113, 94, 0.4);
+    border-left: 3px solid var(--color-accent-secondary);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin: var(--space-lg) 0;
+    overflow-x: auto;
+    box-shadow: var(--shadow-inset);
+    position: relative;
+    word-wrap: normal;
+    overflow-wrap: normal;
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+    white-space: pre;
+}
+
+/* 代码块语言标签 */
+pre.src::before {
+    content: attr(class);
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: var(--color-accent-warning);
+    background-color: rgba(253, 151, 31, 0.2);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    padding: var(--space-xs) var(--space-sm);
+    border-bottom-left-radius: var(--radius-sm);
+    border-top-right-radius: var(--radius-md);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--color-accent-warning);
+    border-top: none;
+    border-right: none;
+}
+
+/* Org-mode 代码块语言标识 */
+pre.src-python::before { content: '🐍 Python'; }
+pre.src-javascript::before { content: '📜 JavaScript'; }
+pre.src-emacs-lisp::before { content: '🦄 Emacs Lisp'; }
+pre.src-elisp::before { content: '🦄 Elisp'; }
+pre.src-css::before { content: '🎨 CSS'; }
+pre.src-html::before { content: '🌐 HTML'; }
+pre.src-bash::before,
+pre.src-sh::before { content: '🐚 Shell'; }
+pre.src-sql::before { content: '🗄️ SQL'; }
+pre.src-json::before { content: '📦 JSON'; }
+pre.src-xml::before { content: '📄 XML'; }
+pre.src-yaml::before { content: '⚙️ YAML'; }
+pre.src-c::before { content: '🔧 C'; }
+pre.src-cpp::before,
+pre.src-c\+\+::before { content: '⚡ C++'; }
+pre.src-java::before { content: '☕ Java'; }
+pre.src-rust::before { content: '🦀 Rust'; }
+pre.src-go::before { content: '🐹 Go'; }
+pre.src-ruby::before { content: '💎 Ruby'; }
+pre.src-php::before { content: '🐘 PHP'; }
+pre.src-r::before { content: '📊 R'; }
+pre.src-matlab::before { content: '🧮 MATLAB'; }
+
+/* 示例块样式 */
+.example,
+pre.example {
+    background-color: var(--color-bg-secondary);
+    border-left: 3px solid var(--color-accent-info);
+    padding: var(--space-md);
+    margin: var(--space-lg) 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+}
+
+/* 滚动条样式 */
+pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: var(--color-text-muted);
+    border-radius: var(--radius-sm);
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-primary);
+}
+
+/* 键盘按键 */
+kbd {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    background: linear-gradient(180deg, 
+        var(--color-bg-elevated) 0%, 
+        var(--monokai-gray) 100%);
+    border: 1px solid var(--color-text-muted);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    margin: 0 var(--space-xs);
+    display: inline-block;
+    line-height: var(--line-height-tight);
+    white-space: nowrap;
+    box-shadow: 
+        0 1px 0 rgba(0, 0, 0, 0.4),
+        0 0 0 2px var(--color-bg-secondary) inset,
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+kbd:active {
+    transform: translateY(1px);
+    box-shadow: 
+        0 0 0 rgba(0, 0, 0, 0.4),
+        0 0 0 2px var(--color-bg-secondary) inset;
+}
+
+/* 示例输出 */
+samp {
+    font-family: var(--font-mono);
+    color: var(--color-accent-info);
+    background-color: var(--color-bg-secondary);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+}
+
+/* 变量 */
+var {
+    font-style: italic;
+    color: var(--color-accent-warning);
+}
+
+/* --------------------------------------------
+   【对象层】表格系统
+   -------------------------------------------- */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--space-lg) 0;
+    font-size: var(--font-size-sm);
+    background-color: var(--color-bg-primary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+caption {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-base);
+    padding: var(--space-md);
+    caption-side: top;
+    text-align: left;
+    background-color: var(--color-bg-elevated);
+}
+
+thead {
+    background: linear-gradient(180deg, 
+        var(--monokai-gray) 0%, 
+        var(--color-bg-elevated) 100%);
+}
+
+th {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-bold);
+    text-align: left;
+    padding: var(--space-md) var(--space-lg);
+    border: none;
+    border-bottom: 2px solid var(--color-accent-danger);
+    vertical-align: top;
+}
+
+th.org-left { text-align: left; }
+th.org-center { text-align: center; }
+th.org-right { text-align: right; }
+
+td {
+    padding: var(--space-sm) var(--space-lg);
+    border: none;
+    vertical-align: top;
+    text-align: left;
+    align-items: center;
+    vertical-align: middle;
+}
+
+td.org-left { text-align: left; }
+td.org-center { text-align: center; }
+td.org-right { text-align: right; }
+
+tbody tr:nth-child(odd) {
+    background-color: var(--color-bg-primary);
+}
+
+tbody tr:nth-child(even) {
+    background-color: var(--color-bg-elevated);
+}
+
+tbody tr {
+    border-bottom: 1px solid rgba(117, 113, 94, 0.2);
+    transition: all var(--transition-base);
+}
+
+tbody tr:hover {
+    background-color: rgba(102, 217, 239, 0.1);
+    transform: scale(1.001);
+}
+
+/* 表格容器（响应式） */
+.table-wrapper {
+    overflow-x: auto;
+    margin: var(--space-lg) 0;
+}
+
+/* --------------------------------------------
+   【对象层】图片与媒体
+   -------------------------------------------- */
+
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+figure {
+    margin: var(--space-xl) 0;
+    text-align: center;
+}
+
+figcaption {
+    margin-top: var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* --------------------------------------------
+   【行动层】交互状态
+   -------------------------------------------- */
+
+::selection {
+    background-color: var(--color-accent-danger);
+    color: var(--color-bg-primary);
+}
+
+::-moz-selection {
+    background-color: var(--color-accent-danger);
+    color: var(--color-bg-primary);
+}
+
+:focus-visible {
+    outline: 2px solid var(--color-accent-primary);
+    outline-offset: 2px;
+}
+
+:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------
+   【工具层】辅助类
+   -------------------------------------------- */
+
+/* 文本对齐 */
+.text-left { text-align: left !important; }
+.text-center { text-align: center !important; }
+.text-right { text-align: right !important; }
+.text-justify { text-align: justify !important; }
+
+/* 显示/隐藏 */
+.hidden { display: none !important; }
+.invisible { visibility: hidden !important; }
+.visible { visibility: visible !important; }
+
+/* 浮动 */
+.float-left { 
+    float: left; 
+    margin-right: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+.float-right { 
+    float: right; 
+    margin-left: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+.clearfix::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* 间距重置 */
+.m-0 { margin: 0 !important; }
+.mt-0 { margin-top: 0 !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.p-0 { padding: 0 !important; }
+
+/* 颜色工具 */
+.text-muted { color: var(--color-text-muted) !important; }
+.text-primary { color: var(--color-accent-primary) !important; }
+.text-danger { color: var(--color-accent-danger) !important; }
+.text-success { color: var(--color-accent-secondary) !important; }
+.text-warning { color: var(--color-accent-warning) !important; }
+
+/* 背景工具 */
+.bg-highlight {
+    background-color: var(--color-bg-elevated);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+}
+
+/* Wiki 专用工具类 */
+.wiki-note {
+    background-color: rgba(102, 217, 239, 0.1);
+    border-left: 4px solid var(--color-accent-primary);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-lg) 0;
+    border-radius: var(--radius-sm);
+}
+
+.wiki-warning {
+    background-color: rgba(253, 151, 31, 0.1);
+    border-left: 4px solid var(--color-accent-warning);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-lg) 0;
+    border-radius: var(--radius-sm);
+}
+
+.wiki-danger {
+    background-color: rgba(249, 38, 114, 0.1);
+    border-left: 4px solid var(--color-accent-danger);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-lg) 0;
+    border-radius: var(--radius-sm);
+}
+
+.wiki-success {
+    background-color: rgba(166, 226, 46, 0.1);
+    border-left: 4px solid var(--color-accent-secondary);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-lg) 0;
+    border-radius: var(--radius-sm);
+}
+
+/* --------------------------------------------
+   【特殊】Org-mode 特定元素
+   -------------------------------------------- */
+
+/* Org 时间戳 */
+.timestamp {
+    color: var(--color-accent-info);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+}
+
+/* Org 标签 */
+.tag {
+    background-color: var(--color-accent-warning);
+    color: var(--color-bg-primary);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    margin-left: var(--space-sm);
+}
+
+.tag span {
+    margin: 0 var(--space-xs);
+}
+
+/* Org TODO 关键词 */
+.todo {
+    color: var(--color-accent-danger);
+    font-weight: var(--font-weight-bold);
+    margin-right: var(--space-sm);
+    background-color: rgba(249, 38, 114, 0.2);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+}
+
+.done {
+    color: var(--color-accent-secondary);
+    font-weight: var(--font-weight-bold);
+    margin-right: var(--space-sm);
+    background-color: rgba(166, 226, 46, 0.2);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+}
+
+/* Org 优先级 */
+.priority {
+    color: var(--color-accent-warning);
+    font-weight: var(--font-weight-bold);
+    margin-right: var(--space-sm);
+    background-color: rgba(253, 151, 31, 0.2);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+}
+
+/* Org 脚注 */
+.footref {
+    vertical-align: super;
+    font-size: var(--font-size-xs);
+    color: var(--color-accent-primary);
+}
+
+.footdef {
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid rgba(117, 113, 94, 0.2);
+    font-size: var(--font-size-sm);
+}
+
+/* Org 源码容器 */
+.org-src-container {
+    position: relative;
+}
+
+/* --------------------------------------------
+   【行动层】响应式设计
+   -------------------------------------------- */
+
+/* 平板设备（≤1024px） */
+@media screen and (max-width: 1024px) {
+    :root {
+        --toc-width: 240px;
+        --content-width: 95%;
+        --gap-primary: 1rem;
+    }
+    
+    #content {
+        padding: var(--space-md) var(--space-sm);
+    }
+}
+
+/* 移动设备（≤768px）- 垂直布局 */
+@media screen and (max-width: 768px) {
+    :root {
+        --space-unit: 0.2rem;
+        --font-size-base: 0.95rem;
+        --font-size-4xl: 2rem;
+        --font-size-3xl: 1.75rem;
+        --font-size-2xl: 1.5rem;
+    }
+    
+    #content {
+        grid-template-columns: 1fr;
+        grid-template-areas: 
+            "toc"
+            "main";
+        gap: var(--space-lg);
+        width: 100%;
+        padding: var(--space-sm);
+    }
+    
+    #table-of-contents {
+        grid-column: 1;
+        grid-row: 1;
+        position: relative;
+        top: 0;
+        max-height: 400px;
+        margin-bottom: var(--space-lg);
+    }
+    
+    #content > *:not(#table-of-contents) {
+        grid-column: 1;
+        grid-row: auto;
+    }
+    
+    h1, .title {
+        font-size: var(--font-size-3xl);
+    }
+    
+    h2 {
+        font-size: var(--font-size-xl);
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    h3 {
+        font-size: var(--font-size-lg);
+    }
+    
+    h4 {
+        font-size: var(--font-size-base);
+    }
+    
+    pre {
+        font-size: 0.8rem;
+        padding: var(--space-md);
+    }
+    
+    table {
+        font-size: 0.8rem;
+        display: block;
+        overflow-x: auto;
+    }
+    
+    td, th {
+        padding: var(--space-xs) var(--space-sm);
+    }
+}
+
+/* 小屏移动设备（≤480px） */
+@media screen and (max-width: 480px) {
+    :root {
+        --font-size-base: 0.9rem;
+    }
+    
+    #content {
+        padding: var(--space-xs);
+    }
+    
+    #table-of-contents {
+        padding: var(--space-md) var(--space-sm);
+    }
+}
+
+/* 打印样式 */
+@media print {
+    :root {
+        --color-bg-primary: white;
+        --color-bg-secondary: #f5f5f5;
+        --color-bg-tertiary: #eeeeee;
+        --color-text-primary: black;
+        --color-text-muted: #666;
+    }
+    
+    body {
+        background: white;
+        color: black;
+    }
+    
+    #content {
+        grid-template-columns: 1fr;
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    #table-of-contents {
+        display: none;
+    }
+    
+    /* ✅ 打印时显示所有章节 */
+    .outline-2, .outline-3, .outline-4, .outline-5, .outline-6 {
+        opacity: 1 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        pointer-events: auto !important;
+        margin-bottom: var(--space-xl) !important;
+    }
+    
+    #content > *:not(#table-of-contents) {
+        grid-column: 1;
+    }
+    
+    a {
+        color: black;
+        text-decoration: underline;
+    }
+    
+    a[href]::after {
+        content: " (" attr(href) ")";
+        font-size: var(--font-size-xs);
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+    }
+    
+    table, figure, pre {
+        page-break-inside: avoid;
+    }
+}
+
+/* --------------------------------------------
+   【优化】性能与可访问性
+   -------------------------------------------- */
+
+/* 减少重绘 */
+* {
+    will-change: auto;
+}
+
+/* 平滑滚动性能优化 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .outline-2, .outline-3, .outline-4, .outline-5, .outline-6 {
+        transition: none !important;
+    }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+    :root {
+        --color-text-primary: #FFFFFF;
+        --color-bg-primary: #000000;
+        --color-accent-primary: #00FFFF;
+        --color-accent-danger: #FF00FF;
+    }
+}

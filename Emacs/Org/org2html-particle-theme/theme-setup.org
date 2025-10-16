@@ -1,0 +1,26 @@
+# theme-setup.org - 主题配置文件
+
+# CSS 引用
+#+HTML_HEAD: <link rel="stylesheet" href="assets/org.css" />
+
+# JS 引用
+#+HTML_HEAD: <script src="assets/org.js"></script>
+
+# 可选：Three.js CDN
+#+HTML_HEAD: <script src="https://unpkg.com/three@0.117.1/build/three.min.js"></script>
+
+# 可选：字体
+#+HTML_HEAD: <link rel="preconnect" href="https://fonts.googleapis.com">
+#+HTML_HEAD: <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700&family=Victor+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+# 可选：自定义配置脚本
+#+HTML_HEAD: <script>
+#+HTML_HEAD: window.PALANTIR_CONFIG = {
+#+HTML_HEAD:     enableParticles: true,
+#+HTML_HEAD:     enableWikiEnhance: true,
+#+HTML_HEAD:     debug: false
+#+HTML_HEAD: };
+#+HTML_HEAD: </script>
+
+# 导出选项
+#+OPTIONS: toc:3 num:t ^:nil html-style:nil html-scripts:nil
