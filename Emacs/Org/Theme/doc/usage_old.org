@@ -1,0 +1,395 @@
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:t html-postamble:nil
+
+#+HTML_HEAD: <link rel="stylesheet" href="file://c:/Users/admin/Downloads/Theme/CSS/org.css"/>
+#+HTML_HEAD: <script                 src="file://c:/Users/admin/Downloads/Theme/js/background.js"></script>
+#+HTML_HEAD: <link rel="stylesheet" href="file://c:/Users/admin/Downloads/Theme/CSS/org.css"/>
+#+HTML_HEAD: <script                 src="file://c:/Users/admin/Downloads/Theme/js/org.js"></script>
+
+#+BEGIN_EXPORT html
+<canvas class="webgl-particles-bg"></canvas>
+<script>
+// 自定义配置
+window.addEventListener('DOMContentLoaded', () => {
+  window.orgParticlesBg = new OrgParticlesBackground({
+    count: 100000,              // 粒子数量
+    branches: 10,                // 旋臂数量
+    innerColor: '#ff6b6b',      // 内部颜色
+    outerColor: '#4ecdc4',      // 外部颜色
+    enableOrbitControls: true,  // 启用鼠标交互
+    autoRotate: true,           // 自动旋转
+  });
+});
+</script>
+#+END_EXPORT
+
+* Setup                                                                               :noexport:
+#+begin_src emacs-lisp :exports results :results silent
+(defun make-html-region--replace-1 (x)
+  (format "<cursor>%c</cursor><span class=\"region\">%s</span>"
+          (aref x 1)
+          (regexp-quote
+           (substring x 2 (- (length x) 1)))))
+
+(defun make-html-region--replace-2 (x)
+  (let ((ch (aref x (- (length x) 1))))
+    (if (eq ch ?|)
+        (format "<span class=\"region\">%s</span><cursor> </cursor>"
+                (regexp-quote (substring x 1 (- (length x) 1))))
+      (format "<span class=\"region\">%s</span><cursor>%c</cursor>"
+          (regexp-quote
+           (substring x 1 (- (length x) 2)))
+          ch))))
+
+(defun make-html-cursor--replace (x)
+  (if (string= "|\n" x)
+      "<cursor> </cursor>\n"
+    (if (string= "|[" x)
+        "<cursor>[</cursor>"
+      (format "<cursor>%s</cursor>"
+              (regexp-quote
+               (substring x 1))))))
+
+(defun make-html-region (str x y)
+  (setq str
+        (replace-regexp-in-string
+         "|[^|~]+~"
+         #'make-html-region--replace-1
+         str))
+  (setq str
+        (replace-regexp-in-string
+         "~[^|~]+|\\(?:.\\|$\\)"
+         #'make-html-region--replace-2
+         str
+         nil t))
+  (replace-regexp-in-string
+   "|\\(.\\|\n\\)"
+   #'make-html-cursor--replace
+   str))
+
+(defun org-src-denote-region (&optional context)
+  (when (and (memq major-mode '(emacs-lisp-mode))
+             (region-active-p))
+    (let ((pt (point))
+          (mk (mark)))
+      (deactivate-mark)
+      (insert "|")
+      (goto-char (if (> pt mk) mk (1+ mk)))
+      (insert "~"))))
+
+(advice-add 'org-edit-src-exit :before #'org-src-denote-region)
+
+(defun org-babel-edit-prep:elisp (info)
+  (when (string-match "[~|][^~|]+[|~]" (cadr info))
+    (let (mk pt deactivate-mark)
+      (goto-char (point-min))
+      (re-search-forward "[|~]")
+      (if (looking-back "~")
+          (progn
+            (backward-delete-char 1)
+            (setq mk (point))
+            (re-search-forward "|")
+            (backward-delete-char 1)
+            (set-mark mk))
+        (backward-delete-char 1)
+        (setq pt (point))
+        (re-search-forward "~")
+        (backward-delete-char 1)
+        (set-mark (point))
+        (goto-char pt)))))
+
+(setq org-export-filter-src-block-functions '(make-html-region))
+(setq org-html-validation-link nil)
+(setq org-html-postamble nil)
+(setq org-html-preamble "<link rel=\"icon\" type=\"image/x-icon\" href=\"https://github.com/favicon.ico\"/>")
+(setq org-html-text-markup-alist
+  '((bold . "<b>%s</b>")
+    (code . "<kbd>%s</kbd>")
+    (italic . "<i>%s</i>")
+    (strike-through . "<del>%s</del>")
+    (underline . "<span class=\"underline\">%s</span>")
+    (verbatim . "<code>%s</code>")))
+(setq org-html-style-default nil)
+(setq org-html-head-include-scripts nil)
+#+end_src
+
+* Vim IDE 增强按键
+
+注：外选（a-出门）始终比 内部（i-在家）内选多一个括号。
+
+** 查（选）
+*** 元素
+1. 内选：
+   - 所有 vil  (异)
+     #+HTML: <table><tbody><tr><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :in|it
+         (setq column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td><td>
+     -> ~vil~ ->
+     #+HTML: </td><td>
+     #+begin_src emacs-lisp
+       (|use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t)~)	; 显示行号
+     #+end_src
+     #+HTML: </td></tr></tbody></table>
+   - 局部 vix  
+     #+HTML: <table><tbody><tr><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq |column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td><td>
+     -> ~vix~ ->
+     #+HTML: </td><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq |column-number-indicator-zero-based~ nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td></tr></tbody></table>
+   - 原子 viw
+     #+HTML: <table><tbody><tr><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq |column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td><td>
+     -> ~viw~ ->
+     #+HTML: </td><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq |column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td></tr></tbody></table>
+2. 外选：
+   - 所有 val  (异)
+     #+HTML: <table><tbody><tr><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :in|it
+         (setq column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td><td>
+     -> ~val~ ->
+     #+HTML: </td><td>
+     #+begin_src emacs-lisp
+       |(use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))~	; 显示行号
+     #+end_src
+     #+HTML: </td></tr></tbody></table>
+   - 局部 vax
+     #+HTML: <table><tbody><tr><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq |column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td><td>
+     -> ~vax~ ->
+     #+HTML: </td><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq |column-number-indicator-zero-based~ nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td></tr></tbody></table>
+   - 原子 vaw
+     #+HTML: <table><tbody><tr><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq |column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td><td>
+     -> ~vaw~ ->
+     #+HTML: </td><td>
+     #+begin_src emacs-lisp
+       (use-package base-line
+         :no-require t
+         :ensure nil
+         :demand t
+         :init
+         (setq| ~|column-number-indicator-zero-based nil)    
+         :config
+         (global-display-line-numbers-mode t))	; 显示行号
+     #+end_src
+     #+HTML: </td></tr></tbody></table>
+
+*** 字符串
+1. 内选
+   - 所有 viS
+2. 外选
+   - 所有 vaS
+
+*** 注释
+1. 内选
+   - 所有 vic
+2. 外选
+   - 所有 vac
+
+*** 函数
+1. 内选：
+   - 所有 vif  (异)
+2. 外选：
+   - 所有 vaf  (异)
+
+** 删
+*** 元素
+1. 内删
+   - 所有 cc   (异)
+   - 整体 vilx (异)
+   - 局部 vixx
+   - 原子 viwx
+2. 外删
+   - 所有 dd   (异)
+   - 整体 valx (异)
+   - 局部 vaxx
+   - 原子 vawx
+3. 父降子
+   - 所有 M-r （异）
+
+*** 函数
+1. 内删：
+   - 所有 vifx (异)
+2. 外删：
+   - 所有 vafx (异)
+
+*** 括号
+1. 本级点删
+   - M-r
+2. 本级外删
+   - M-s
+
+** 改（移）
+*** 元素
+1. 上移
+   - M-k / M-t (首字符)
+2. 下移
+   - M-j / M-t (第二字符)
+3. 拼接
+   - J
+
+*** 括号
+1. 左移
+   - <
+2. 右移
+   - >
+*** 函数
+1. 上移
+   - [
+2. 下移
+   - ]
+** 增（自定义）
+*** 复制
+1. 内复：
+   - 所有：vY / YY
+   - 局部: vaxy
+   - 原子: vawy
+
+*** 注释
+1. 所有
+   - gcap
+2. 局部
+   - gcc
+3. 原子
+   - gcw
+*** 注释 + 复制
+1. 复制 + 注释 一行
+   - gyy
+2. 复制 + 注释 下面三行
+   - C-u 3 gyy
+*** 原子
+1. 分割
+   - M-S
+     #+begin_src emacs-lisp
+       (defun sayHello ()
+           ➡️(print "123")
+           (lambda ("456" message)))
+
+       ⬇️
+
+       (defun sayHello ()
+           print "123"
+           (lambda ("456" message)))
+     #+end_src
+2. 连接
+   - M-J
+     #+begin_src emacs-lisp
+       (defun sayHello ()
+           ➡️(print "123")
+           (lambda ("456" message)))
+
+       ⬇️
+
+       (defun sayHello (
+       		 print "123")
+         (lambda ("456" message)))
+     #+end_src
+     
+** 格式化
+*** 缩进
+1. 局部
+   - =
