@@ -1,10 +1,10 @@
 # theme-setup.org - 主题配置文件
 
-# CSS 引用
-#+HTML_HEAD: <link rel="stylesheet" href="assets/org.css" />
+# CSS 引用 (远程CDN)
+#+HTML_HEAD: <link rel="stylesheet" href="https://lovemoganna.github.io/DotFiles/Emacs/Org/org2html-particle-theme/assets/org.css" />
 
-# JS 引用
-#+HTML_HEAD: <script src="assets/org.js"></script>
+# JS 引用 (远程CDN)
+#+HTML_HEAD: <script src="https://lovemoganna.github.io/DotFiles/Emacs/Org/org2html-particle-theme/assets/org.js"></script>
 
 # 可选：Three.js CDN
 #+HTML_HEAD: <script src="https://unpkg.com/three@0.117.1/build/three.min.js"></script>

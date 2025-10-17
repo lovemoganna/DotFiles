@@ -2,9 +2,7 @@
 #+AUTHOR: revolt
 #+DATE: <2025-10-16 Thu 23:47>
 #+OPTIONS: toc:3 num:t ^:nil html-postamble:nil
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="assets/org.css" />
-#+HTML_HEAD: <script src="assets/org.js"></script>
-# #+SETUPFILE: https://raw.githubusercontent.com/lovemoganna/DotFiles/refs/heads/main/Emacs/Org/org2html-particle-theme/theme-setup.org
+#+SETUPFILE: https://lovemoganna.github.io/DotFiles/Emacs/Org/org2html-particle-theme/theme-setup.org
 
 * 🚀 快速开始 - 5分钟搞定
 
@@ -17,22 +15,23 @@
 
 #+BEGIN_SRC bash
 # 克隆仓库（或者直接下载zip）
-git clone https://github.com/your-repo/org2html-particle-theme.git
+git clone https://github.com/lovemoganna/org2html-particle-theme.git
 cd org2html-particle-theme
 #+END_SRC
 
-你只需要这三个文件：
+你只需要这四个文件：
 - =org.css= - 主题样式
-- =palantir-wiki-enhanced.js= - 增强功能
-- =your-org-file.org= - 你的 Org 文档
+- =org.js= - 增强功能
+- =theme-setup.org= - 自定义配置文件
+- =Readme.org= - 你的工作文档
 
 ** 第二步：配置 Org 文件头部
 
 在你的 =.org= 文件开头添加这些：
 
 #+BEGIN_SRC org
-,#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="org.css" />
-,#+HTML_HEAD: <script src="palantir-wiki-enhanced.js"></script>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="assets/org.css" />
+#+HTML_HEAD: <script src="assets/org.js"></script>
 #+END_SRC
 
 ** 第三步：导出 HTML
@@ -119,7 +118,7 @@ cd org2html-particle-theme
   ,#+HTML_HEAD: <script src="assets/org.js"></script>
 #+END_SRC
 
-4. 导出 HTML（=C-c C-e h h=）
+4. 导出 HTML (=C-c C-e h h=)
 
 ** 方案 B：自定义配置（高级用户）
 
