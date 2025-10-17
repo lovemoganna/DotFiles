@@ -7,8 +7,9 @@
 * 🚀 快速开始 - 5分钟搞定
 
 #+BEGIN_QUOTE
-*别慌！* 这可能是你见过最简单的 Org Mode 主题配置。
-我们的目标是让你在 5 分钟内拥有一个炫酷的知识库网站。
+*别慌！* 这可能是你见过最简单的 Org Mode 主题配置。我们的目标是让你在 5 分钟内拥有一个炫酷的知识库网站。\\
+If 快速体验，可在 org mode 顶部添加该远程资源 =#+SETUPFILE: https://lovemoganna.github.io/DotFiles/Emacs/Org/org2html-particle-theme/theme-setup.org= 。\\
+If 自行 Hack，可按下 =Alt-j= 跟着操作。
 #+END_QUOTE
 
 ** 第一步：下载文件
@@ -743,11 +744,9 @@ PalantirWiki.particles.updateConfig({
 #+END_SRC
 
 * 🤝 贡献指南
-
 我们欢迎所有形式的贡献！
 
 ** 报告 Bug
-
 在 [[https://github.com/your-repo/org2html-particle-theme/issues][GitHub Issues]] 中提交问题时，请包含：
 
 1. 浏览器版本
@@ -756,37 +755,29 @@ PalantirWiki.particles.updateConfig({
 4. 最小可复现示例
 
 ** 提交功能建议
-
 1. 先搜索是否已有相同建议
 2. 清楚描述你的需求
 3. 解释为什么这个功能有用
 
 ** Pull Request
-
 1. Fork 仓库
-2. 创建特性分支（=git checkout -b feature/amazing-feature=）
-3. 提交更改（=git commit -m 'Add amazing feature'=）
-4. 推送到分支（=git push origin feature/amazing-feature=）
+2. 创建特性分支 (=git checkout -b feature/amazing-feature=)
+3. 提交更改 (=git commit -m 'Add amazing feature'=)
+4. 推送到分支 (=git push origin feature/amazing-feature=)
 5. 打开 Pull Request
 
 * 📄 许可证
-
 MIT License - 自由使用，欢迎分享！
-
 详见 [[./LICENSE][LICENSE]] 文件。
 
 * 🙏 致谢
-
 - [[https://orgmode.org/][Org Mode]] - 最强大的纯文本组织系统
 - [[https://threejs.org/][Three.js]] - 3D 图形库
 - [[https://www.fast.ai/][fast.ai]] - 教学风格灵感来源
 - 所有贡献者和用户
 
 * 📮 联系我们
-
-- GitHub: [[https://github.com/your-repo/org2html-particle-theme]]
-- Email: your-email@example.com
-- Discord: [[https://discord.gg/your-server]]
+- GitHub: [[https://github.com/lovemoganna/org2html-particle-theme]]
 
 #+BEGIN_CENTER
 *Happy Writing! 🚀*
