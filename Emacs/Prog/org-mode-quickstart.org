@@ -1,0 +1,788 @@
+# -*- mode: org; buffer-read-only: t; coding: utf-8; org-image-actual-width: nil; eval: (setq-local css-path (expand-file-name ".utils/css/org.css" user-emacs-directory)); -*-
+#+STARTUP: content align inlineimages indent hidestars
+#+PROPERTY: header-args :eval never :mkdirp yes :exports both
+#+OPTIONS: html-postamble:nil
+#+OPTIONS: ':t *:t -:t ::t <:t H:5 \n:nil ^:t arch:headline author:t c:nil
+#+OPTIONS: creator:nil d:(not LOGBOOK) date:t e:t email:nil f:t inline:t
+#+OPTIONS: *:nil toc:t num:nil
+#+OPTIONS: todo:t |:t tex:t
+#+LANGUAGE: en
+
+#+HTML_HEAD: <!-- base font -->
+#+HTML_HEAD: <link rel='preconnect' href='https://fonts.googleapis.com'>
+#+HTML_HEAD: <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+#+HTML_HEAD: <link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap' rel='stylesheet'>
+
+#+TITLE: Quickstart | Org mode
+#+description: Org: an Emacs Mode for Notes, Planning and Authoring
+#+OPTIONS: toc:3 num:t
+#+SETUPFILE: https://lovemoganna.github.io/DotFiles/Emacs/Org/org2html-particle-theme/theme-setup.org
+
+* 第一部分：本体论基础 - Org Mode 的本质
+** 1.1 核心理念
+*** 第一性原理定义
+#+BEGIN_QUOTE
+Org Mode 是一个基于纯文本的结构化信息管理系统，通过最小化的标记语法实现最大化的功能表达。
+#+END_QUOTE
+
+*** 三大支柱
+1. *纯文本性* - 一切皆文本，永不过时
+2. *结构化* - 层级关系，逻辑清晰
+3. *可执行性* - 文本即代码，文档即程序
+
+** 1.2 MECE功能架构
+#+BEGIN_SRC plantuml :file org-mode-mece.png
+@startmindmap
+* Org Mode 功能体系
+** 内容层（静态）
+*** 文档结构
+*** 富文本标记
+*** 元数据管理
+** 行为层（动态）
+*** 任务管理
+*** 时间追踪
+*** 代码执行
+** 输出层（转换）
+*** 导出发布
+*** 格式转换
+*** 报表生成
+** 系统层（配置）
+*** 个性化设置
+*** 扩展集成
+*** 模板系统
+@endmindmap
+#+END_SRC
+
+* 第二部分：静态内容管理【实体与属性】
+** 2.1 文档结构实体
+*** 标题层级
+#+BEGIN_EXAMPLE
+* 一级标题
+** 二级标题
+*** 三级标题
+**** 四级标题
+***** 五级标题
+****** 六级标题
+#+END_EXAMPLE
+
+*** 标题属性
+#+BEGIN_SRC org
+,* 项目会议 :work:meeting:
+  :PROPERTIES:
+  :CUSTOM_ID: meeting-2024
+  :LOCATION: 会议室A
+  :ATTENDEES: 张三 李四 王五
+  :END:
+#+END_SRC
+
+** 2.2 列表实体
+*** 无序列表
+#+BEGIN_EXAMPLE
+- 项目一
+  + 子项目 A
+    * 具体任务1
+    * 具体任务2
+  + 子项目 B
+- 项目二
+#+END_EXAMPLE
+
+*** 有序列表
+#+BEGIN_EXAMPLE
+1. 第一步：需求分析
+2. 第二步：系统设计
+   1) 架构设计
+   2) 数据库设计
+3. [@10] 第十步：部署上线
+#+END_EXAMPLE
+
+*** 描述列表
+#+BEGIN_EXAMPLE
+- 概念一 :: 这是概念一的详细解释
+- 概念二 :: 这是概念二的详细解释
+  + 子概念 :: 进一步的说明
+#+END_EXAMPLE
+
+*** 复选框列表
+#+BEGIN_EXAMPLE
+- [ ] 待办任务 [0/3]
+  - [ ] 子任务1
+  - [ ] 子任务2 
+  - [ ] 子任务3
+- [X] 已完成任务 [100%]
+  - [X] 完成的子任务
+#+END_EXAMPLE
+
+** 2.3 表格实体
+*** 基础表格
+#+BEGIN_EXAMPLE
+| 姓名 | 年龄 | 部门     |
+|------+------+----------|
+| 张三 |   25 | 研发部   |
+| 李四 |   30 | 市场部   |
+| 王五 |   28 | 运营部   |
+#+END_EXAMPLE
+
+*** 计算表格
+#+BEGIN_EXAMPLE
+| 产品 | 单价 | 数量 | 总价    |
+|------+------+------+---------|
+| A    |  100 |    5 | 500     |
+| B    |  200 |    3 | 600     |
+|------+------+------+---------|
+| 合计 |      |      | 1100    |
+#+TBLFM: $4=$2*$3::@4$4=vsum(@2..@3)
+#+END_EXAMPLE
+
+** 2.4 文本标记实体
+*** 基础格式
+#+BEGIN_EXAMPLE
+*粗体* /斜体/ _下划线_ =代码= ~等宽~ +删除线+
+#+END_EXAMPLE
+
+*** 特殊元素
+#+BEGIN_EXAMPLE
+上标: E=mc^2
+下标: H_2O
+LaTeX: $\alpha + \beta = \gamma$
+#+END_EXAMPLE
+
+** 2.5 块级实体
+*** 示例块
+#+BEGIN_EXAMPLE
+,#+BEGIN_EXAMPLE
+这是一个示例块
+可以包含多行文本
+,#+END_EXAMPLE
+#+END_EXAMPLE
+
+*** 引用块
+#+BEGIN_QUOTE
+这是一段引用文本
+可以用来标记引用内容
+#+END_QUOTE
+
+*** 居中块
+#+BEGIN_CENTER
+居中显示的文本
+#+END_CENTER
+
+*** 诗歌块
+#+BEGIN_VERSE
+春眠不觉晓，
+处处闻啼鸟。
+夜来风雨声，
+花落知多少。
+#+END_VERSE
+
+* 第三部分：动态行为管理【关系与行为】
+** 3.1 任务管理系统
+*** TODO 状态工作流
+#+BEGIN_SRC org
+,#+TODO: TODO(t) DOING(i) WAIT(w@/!) | DONE(d!) CANCELED(c@)
+
+,* TODO [#A] 重要紧急任务
+  SCHEDULED: <2024-01-15 Mon>
+  DEADLINE: <2024-01-20 Sat>
+  :PROPERTIES:
+  :EFFORT: 2:00
+  :STYLE: habit
+  :END:
+  
+,* DOING 正在处理的任务
+  :LOGBOOK:
+  - State "DOING"      from "TODO"       [2024-01-10 10:00]
+  CLOCK: [2024-01-10 Wed 10:00]--[2024-01-10 Wed 11:30] =>  1:30
+  :END:
+#+END_SRC
+
+*** 优先级管理
+#+BEGIN_EXAMPLE
+,* [#A] 最高优先级
+,* [#B] 中等优先级  
+,* [#C] 低优先级
+#+END_EXAMPLE
+
+** 3.2 时间管理
+*** 时间戳类型
+#+BEGIN_SRC org
+# 普通时间戳
+<2024-01-15 Mon>
+
+# 带时间的时间戳
+<2024-01-15 Mon 14:30>
+
+# 时间范围
+<2024-01-15 Mon>--<2024-01-20 Sat>
+
+# 带时间的范围
+<2024-01-15 Mon 14:00-16:00>
+
+# 重复任务
+<2024-01-15 Mon +1w>  # 每周重复
+<2024-01-15 Mon .+2d>  # 从完成日期起2天
+<2024-01-15 Mon ++3d>  # 从原定日期起3天
+
+# 非激活时间戳
+[2024-01-15 Mon]
+#+END_SRC
+
+*** 计时器功能
+#+BEGIN_EXAMPLE
+# 开始计时
+C-c C-x C-i (org-clock-in)
+
+# 结束计时  
+C-c C-x C-o (org-clock-out)
+
+# 查看报告
+C-c C-x C-r (org-clock-report)
+#+END_EXAMPLE
+
+** 3.3 链接系统
+*** 内部链接
+#+BEGIN_SRC org
+# 标题链接
+[[*第一部分：本体论基础]]
+
+# 自定义ID链接
+[[#meeting-2024]]
+
+# 搜索链接
+[[*标题关键词]]
+
+# 文件链接
+[[file:~/documents/notes.org]]
+
+# 文件+标题
+[[file:~/notes.org::*重要笔记]]
+#+END_SRC
+
+*** 外部链接
+#+BEGIN_SRC org
+# 网址
+[[https://orgmode.org][Org Mode 官网]]
+
+# 邮件
+[[mailto:user@example.com][发送邮件]]
+
+# Shell命令
+[[shell:ls -la][列出文件]]
+
+# Elisp
+[[elisp:(message "Hello")][执行Elisp]]
+#+END_SRC
+
+** 3.4 标签系统
+*** 标签定义与继承
+#+BEGIN_SRC org
+,#+TAGS: { 项目(p) 个人(r) } 紧急(u) 重要(i) 
+,#+TAGS: [ 工作 : 开发(d) 测试(t) 部署(D) ]
+,#+TAGS: [ 状态 : 活跃(a) 暂停(s) 完成(f) ]
+
+,* 项目管理 :项目:工作:
+,** 子任务会继承父标签
+#+END_SRC
+
+* 第四部分：代码执行层【计算与编程】
+** 4.1 代码块基础
+*** 源代码块语法
+#+BEGIN_SRC org
+,#+BEGIN_SRC python :results output :exports both
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+for i in range(10):
+    print(f"F({i}) = {fibonacci(i)}")
+,#+END_SRC
+#+END_SRC
+
+*** 代码块参数
+#+BEGIN_SRC org
+,#+BEGIN_SRC sh :var name="World" :results verbatim
+echo "Hello, $name!"
+,#+END_SRC
+
+,#+RESULTS:
+: Hello, World!
+#+END_SRC
+
+** 4.2 文学编程
+*** 代码串联 (noweb)
+#+BEGIN_SRC org
+,#+NAME: 数据定义
+,#+BEGIN_SRC python :noweb yes
+data = [1, 2, 3, 4, 5]
+,#+END_SRC
+
+,#+BEGIN_SRC python :noweb yes :results output
+<<数据定义>>
+print(f"数据总和: {sum(data)}")
+print(f"数据平均: {sum(data)/len(data)}")
+,#+END_SRC
+#+END_SRC
+
+*** 会话模式
+#+BEGIN_SRC org
+,#+BEGIN_SRC python :session :results output
+x = 10
+y = 20
+,#+END_SRC
+
+,#+BEGIN_SRC python :session :results output  
+print(f"x + y = {x + y}")
+,#+END_SRC
+#+END_SRC
+
+** 4.3 数据交互
+*** 表格作为数据源
+#+BEGIN_SRC org
+,#+NAME: sales-data
+| 月份 | 销售额 |
+|------+--------|
+|    1 |   1000 |
+|    2 |   1500 |
+|    3 |   1200 |
+
+,#+BEGIN_SRC python :var data=sales-data :results output
+import numpy as np
+sales = [row[1] for row in data[1:]]  # 跳过表头
+print(f"平均销售额: {np.mean(sales)}")
+print(f"最高销售额: {max(sales)}")
+,#+END_SRC
+#+END_SRC
+
+* 第五部分：导出与发布【输出转换】
+** 5.1 导出配置
+*** 文档级配置
+#+BEGIN_SRC org
+,#+TITLE: 文档标题
+,#+AUTHOR: 作者名
+,#+DATE: 2024-01-15
+,#+EMAIL: author@example.com
+,#+LANGUAGE: zh-CN
+,#+OPTIONS: toc:2 num:t ^:nil
+,#+LATEX_CLASS: article
+,#+LATEX_HEADER: \usepackage{xeCJK}
+,#+HTML_HEAD: <link rel="stylesheet" href="style.css"/>
+#+END_SRC
+
+*** 选择性导出
+#+BEGIN_SRC org
+,* 公开章节
+  这部分会被导出
+
+,* 私密章节                                                        :noexport:
+  这部分不会被导出
+
+,* 条件导出
+,#+BEGIN_EXPORT html
+这段只在HTML导出时显示
+,#+END_EXPORT
+
+,#+BEGIN_EXPORT latex
+这段只在LaTeX导出时显示
+,#+END_EXPORT
+#+END_SRC
+
+** 5.2 多格式导出
+*** HTML导出
+#+BEGIN_EXAMPLE
+C-c C-e h h  # 导出为HTML并打开
+C-c C-e h o  # 导出为HTML并在浏览器打开
+#+END_EXAMPLE
+
+*** LaTeX/PDF导出
+#+BEGIN_EXAMPLE
+C-c C-e l l  # 导出为LaTeX
+C-c C-e l p  # 导出为PDF
+C-c C-e l o  # 导出PDF并打开
+#+END_EXAMPLE
+
+*** Markdown导出
+#+BEGIN_EXAMPLE
+C-c C-e m m  # 导出为Markdown
+C-c C-e m o  # 导出并打开
+#+END_EXAMPLE
+
+** 5.3 发布项目
+*** 项目配置
+#+BEGIN_SRC elisp
+(setq org-publish-project-alist
+      '(("blog-notes"
+         :base-directory "~/blog/org/"
+         :base-extension "org"
+         :publishing-directory "~/blog/public/"
+         :publishing-function org-html-publish-to-html
+         :headline-levels 4
+         :auto-preamble t
+         :auto-sitemap t
+         :sitemap-title "网站地图")))
+#+END_SRC
+
+* 第六部分：高级功能【扩展与集成】
+** 6.1 Capture模板系统
+*** 配置Capture模板
+#+BEGIN_SRC elisp
+(setq org-capture-templates
+      '(("t" "待办事项" entry
+         (file+headline "~/org/gtd.org" "收集箱")
+         "* TODO %?\n  %U\n  %a")
+        
+        ("j" "日记" entry
+         (file+datetree "~/org/journal.org")
+         "* %U %?\n  %i")
+        
+        ("m" "会议记录" entry
+         (file+headline "~/org/meetings.org" "会议")
+         "* %^{会议主题} :meeting:\n  :PROPERTIES:\n  :地点: %^{地点}\n  :参与者: %^{参与者}\n  :END:\n  %U\n\n  议程：\n  %?\n\n  决议：\n")))
+#+END_SRC
+
+** 6.2 Agenda视图
+*** Agenda配置
+#+BEGIN_SRC org
+,#+BEGIN_SRC elisp
+(setq org-agenda-files '("~/org/gtd.org"
+                         "~/org/projects.org"))
+
+;; 自定义Agenda视图
+(setq org-agenda-custom-commands
+      '(("d" "今日概览"
+         ((agenda "" ((org-agenda-span 'day)))
+          (todo "DOING")
+          (todo "TODO" ((org-agenda-max-entries 5)))))
+        
+        ("w" "本周回顾"
+         ((agenda "" ((org-agenda-span 'week)))
+          (todo "DONE" ((org-agenda-time-format "")))))))
+,#+END_SRC
+#+END_SRC
+
+** 6.3 动态块
+*** 时钟报表
+#+BEGIN_SRC org
+,#+BEGIN: clocktable :scope file :maxlevel 2
+,#+END:
+#+END_SRC
+
+*** 列视图块
+#+BEGIN_SRC org
+,#+BEGIN: columnview :id local
+,#+END:
+#+END_SRC
+
+** 6.4 Babel语言集成
+*** 支持的语言
+#+BEGIN_SRC elisp
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((python . t)
+   (emacs-lisp . t)
+   (shell . t)
+   (C . t)
+   (java . t)
+   (js . t)
+   (sql . t)
+   (plantuml . t)))
+#+END_SRC
+
+* 第七部分：实战案例【综合应用】
+** 7.1 GTD系统实现
+*** GTD工作流
+#+BEGIN_SRC org
+,* 收集箱
+,** TODO 阅读新书《深度工作》
+,** TODO 回复客户邮件
+,** TODO 准备周五演讲
+
+,* 项目列表
+,** 产品发布 [33%]
+,*** DONE 需求文档
+,*** TODO 开发完成
+,*** TODO 测试通过
+
+,* 等待列表
+,** WAIT 等待财务批准 
+   SCHEDULED: <2024-01-20 Sat>
+   
+,* 参考资料
+,** 重要联系人
+,** 常用链接
+#+END_SRC
+
+** 7.2 知识管理系统
+*** Zettelkasten笔记法
+#+BEGIN_SRC org
+,* 20240115140000 Org Mode核心概念
+  :PROPERTIES:
+  :ID: 20240115140000
+  :ROAM_REFS: [[https://orgmode.org]]
+  :END:
+  
+  Org Mode是基于纯文本的信息管理系统。
+  
+  相关笔记：
+  - [[id:20240115140100][文本标记语法]]
+  - [[id:20240115140200][任务管理功能]]
+  
+,** 参考文献
+   - Carsten Dominik, "The Org Mode Manual"
+#+END_SRC
+
+** 7.3 项目管理模板
+*** 项目模板
+#+BEGIN_SRC org
+,* 项目：网站重构
+  :PROPERTIES:
+  :CATEGORY: 项目
+  :OWNER: 张三
+  :DEADLINE: <2024-03-01>
+  :BUDGET: 100000
+  :END:
+
+,** 项目概述
+   简要描述项目目标和范围
+
+,** 里程碑 [0%]
+,*** TODO [#A] 阶段一：需求分析 [0/3]
+    DEADLINE: <2024-01-31>
+    - [ ] 用户访谈
+    - [ ] 竞品分析
+    - [ ] 需求文档
+    
+,*** TODO 阶段二：设计 [0/2]
+    SCHEDULED: <2024-02-01>
+    - [ ] UI设计
+    - [ ] 架构设计
+
+,** 资源
+,*** 团队成员
+    | 姓名 | 角色     | 工时/周 |
+    |------+----------+---------|
+    | 张三 | 项目经理 |      20 |
+    | 李四 | 开发     |      40 |
+    | 王五 | 设计     |      30 |
+    
+,*** 预算跟踪
+    | 项目     | 预算   | 实际   | 剩余   |
+    |----------+--------+--------+--------|
+    | 人力成本 |  70000 |  30000 |  40000 |
+    | 工具采购 |  20000 |  15000 |   5000 |
+    | 其他     |  10000 |   2000 |   8000 |
+    |----------+--------+--------+--------|
+    | 总计     | 100000 |  47000 |  53000 |
+    ,#+TBLFM: @5$2=vsum(@2..@4)::@5$3=vsum(@2..@4)::@5$4=$2-$3
+
+,** 会议记录
+,*** 2024-01-15 项目启动会
+    :PROPERTIES:
+    :ATTENDEES: 全体成员
+    :LOCATION: 会议室A
+    :END:
+    
+    讨论要点：
+    1. 项目目标确认
+    2. 时间表制定
+    3. 责任分配
+
+,** 风险管理
+   | 风险描述       | 概率 | 影响 | 应对措施         |
+   |----------------+------+------+------------------|
+   | 需求变更       | 高   | 高   | 敏捷开发，快速迭代 |
+   | 技术难点       | 中   | 高   | 技术预研，专家支持 |
+   | 人员流动       | 低   | 中   | 知识文档，交叉培训 |
+#+END_SRC
+
+* 第八部分：配置优化【个性化设置】
+** 8.1 基础配置
+*** init.el配置示例
+#+BEGIN_SRC elisp
+;; Org Mode 基础配置
+(use-package org
+  :ensure t
+  :config
+  ;; 基础设置
+  (setq org-directory "~/org/")
+  (setq org-default-notes-file (concat org-directory "notes.org"))
+  
+  ;; 视觉优化
+  (setq org-startup-indented t)
+  (setq org-hide-emphasis-markers t)
+  (setq org-pretty-entities t)
+  
+  ;; 任务管理
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "DOING(i!)" "WAIT(w@/!)" "|" "DONE(d!)" "CANCELED(c@)")))
+  
+  (setq org-todo-keyword-faces
+        '(("TODO" . org-warning)
+          ("DOING" . "yellow")
+          ("WAIT" . "orange")
+          ("DONE" . org-done)
+          ("CANCELED" . (:foreground "gray" :weight bold))))
+  
+  ;; 时间记录
+  (setq org-log-done 'time)
+  (setq org-log-into-drawer t)
+  
+  ;; 归档设置
+  (setq org-archive-location "%s_archive::* Archived Tasks"))
+#+END_SRC
+
+** 8.2 快捷键配置
+*** 自定义快捷键
+#+BEGIN_SRC elisp
+;; 全局快捷键
+(global-set-key (kbd "C-c l") 'org-store-link)
+(global-set-key (kbd "C-c a") 'org-agenda)
+(global-set-key (kbd "C-c c") 'org-capture)
+(global-set-key (kbd "C-c b") 'org-switchb)
+
+;; Org Mode 局部快捷键
+(add-hook 'org-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-c C-x i") 'org-clock-in)
+            (local-set-key (kbd "C-c C-x o") 'org-clock-out)
+            (local-set-key (kbd "C-c C-x r") 'org-clock-report)))
+#+END_SRC
+
+** 8.3 外观主题
+*** 字体与颜色
+#+BEGIN_SRC elisp
+;; 设置不同级别标题的字体大小
+(custom-set-faces
+ '(org-level-1 ((t (:height 1.3 :weight bold))))
+ '(org-level-2 ((t (:height 1.2 :weight bold))))
+ '(org-level-3 ((t (:height 1.1 :weight bold))))
+ 
+ ;; 代码块样式
+ '(org-block ((t (:background "#1e1e1e"))))
+ '(org-block-begin-line ((t (:background "#2e2e2e" :extend t)))))
+
+;; 使用 org-bullets 美化标题
+(use-package org-bullets
+  :ensure t
+  :hook (org-mode . org-bullets-mode)
+  :config
+  (setq org-bullets-bullet-list '("◉" "○" "●" "◆" "▪")))
+#+END_SRC
+
+* 第九部分：学习路径【渐进式掌握】
+** 9.1 初级阶段（1-2周）
+*** 学习目标
+- [ ] 掌握基本标记语法
+- [ ] 学会创建和组织文档
+- [ ] 使用基础TODO功能
+- [ ] 简单的导出操作
+
+*** 练习任务
+1. 创建个人日记文件
+2. 制作简单的待办清单
+3. 导出一份HTML文档
+
+** 9.2 中级阶段（3-4周）
+*** 学习目标
+- [ ] 配置Capture模板
+- [ ] 使用Agenda视图
+- [ ] 掌握表格计算
+- [ ] 学习代码块执行
+
+*** 实战项目
+1. 搭建个人GTD系统
+2. 创建项目管理模板
+3. 制作带计算的预算表
+
+** 9.3 高级阶段（5-8周）
+*** 学习目标
+- [ ] 文学编程实践
+- [ ] 自定义导出后端
+- [ ] Elisp配置优化
+- [ ] 插件开发基础
+
+*** 综合项目
+1. 开发个人知识库系统
+2. 创建自动化报告流程
+3. 集成外部工具和API
+
+** 9.4 专家阶段（持续提升）
+*** 深入方向
+- 贡献Org Mode代码
+- 开发自定义包
+- 分享最佳实践
+- 培训和布道
+
+* 第十部分：常见问题与最佳实践
+** 10.1 常见问题FAQ
+*** Q: 如何提高Org Mode性能？
+#+BEGIN_SRC org
+答：
+1. 限制agenda文件数量
+2. 使用 (setq org-agenda-inhibit-startup t)
+3. 定期归档完成的任务
+4. 避免过深的标题嵌套
+#+END_SRC
+
+*** Q: 中文导出PDF乱码？
+#+BEGIN_SRC org
+答：配置XeLaTeX引擎
+,#+LATEX_COMPILER: xelatex
+,#+LATEX_HEADER: \usepackage{xeCJK}
+,#+LATEX_HEADER: \setCJKmainfont{SimSun}
+#+END_SRC
+
+** 10.2 最佳实践
+*** 文件组织
+#+BEGIN_EXAMPLE
+~/org/
+├── gtd.org          # GTD主文件
+├── journal.org      # 日记
+├── projects/        # 项目文件夹
+│   ├── project1.org
+│   └── project2.org
+├── references/      # 参考资料
+├── archive/         # 归档文件
+└── templates/       # 模板文件
+#+END_EXAMPLE
+
+*** 命名规范
+1. 使用有意义的ID：`YYYY-MM-DD-描述`
+2. 标签使用小写：`:work:` `:personal:`
+3. 文件名避免空格，使用连字符
+
+*** 备份策略
+1. 使用Git版本控制
+2. 定期导出重要数据
+3. 云端同步备份
+
+** 10.3 工具集成
+*** 与其他工具协作
+| 工具     | 用途     | 集成方式  |
+|----------+----------+-----------|
+| Git      | 版本控制 | magit包   |
+| Pandoc   | 格式转换 | ox-pandoc |
+| PlantUML | 绘图     | org-babel |
+| Jupyter  | 数据科学 | ein包     |
+
+* 第十一部分：Images
+  :PROPERTIES:
+  :CUSTOM_ID: images
+  :END:
+
+Org mode automatically recognizes and renders image links during
+export.  Just link to an image (don't include a description). That's
+it. \\
+~[[https://upload.wikimedia.org/wikipedia/commons/5/5d/Konigsberg_bridges.png]]~
+
+#+attr_html: :height 120px
+[[https://upload.wikimedia.org/wikipedia/commons/5/5d/Konigsberg_bridges.png]]
+
+Images located on your computer can also be rendered in the Emacs
+buffer with =C-c C-x C-v=.
+* COMMENT 结语：持续进化的Org Mode之旅
+
+#+BEGIN_QUOTE
+"Your life in plain text" - Org Mode不仅是工具，更是一种生活方式。通过本指南的系统学习，你将掌握从基础到高级的所有功能，构建属于自己的信息管理系统。
+
+记住：最好的系统是你实际在用的系统。从简单开始，逐步优化，让Org Mode成为你思维的延伸。
+#+END_QUOTE
