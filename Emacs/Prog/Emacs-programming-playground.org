@@ -1,0 +1,718 @@
+#+TITLE: Emacs Programming Playground
+#+AUTHOR: revolt
+#+DATE: <2025-11-01 Sat 21:30>
+#+OPTIONS: toc:4 num:t ^:nil html-postamble:nil
+#+SETUPFILE: https://lovemoganna.github.io/DotFiles/Emacs/Org/org2html-particle-theme/theme-setup.org
+
+* 编程游乐场
+
+** 谁是核心?
+编程即时反馈，是驱动人走修正-迭代-变更的根本动力。而最佳体验，还是键盘流效率高。
+
+** 前期配置
+
+*** 设置
+#+NAME: 自定义设置
+#+begin_src emacs-lisp
+  ;; 编译相关全局设置
+  (use-package compile
+    :ensure nil
+    :config
+    ;; 自动滚动编译输出
+    (setq compilation-scroll-output t)
+    
+    ;; 编译窗口自动关闭（成功时）
+    (setq compilation-finish-functions
+          (lambda (buf str)
+            (if (null (string-match ".*exited abnormally.*" str))
+                (progn
+                  (run-at-time
+                   "10 sec" nil 'delete-windows-on
+                   (get-buffer-create "*compilation*"))
+                  (message "Compilation Successful!")))))
+    
+    ;; ANSI 颜色支持
+    (require 'ansi-color)
+    (defun my/colorize-compilation-buffer ()
+      (when (eq major-mode 'compilation-mode)
+        (ansi-color-apply-on-region compilation-filter-start (point-max))))
+
+    (add-hook 'compilation-filter-hook 'my/colorize-compilation-buffer)
+
+    (defun revert-this-buffer ()
+      (interactive)
+      (revert-buffer nil t t)
+      (message (concat "Reverted buffer " (buffer-name))))
+    
+    :bind (("<f5>" . recompile)
+           ("<f6>" . compile)
+           ("<f7>" . revert-this-buffer)))
+
+  (provide 'base-compile)
+#+end_src
+
+*** 调用
+#+NAME: 便捷调用
+#+begin_src emacs-lisp
+(require 'base-compile)
+#+end_src
+
+** 典型单一示例
+
+*** Elisp
+
+**** 示例
+#+begin_src emacs-lisp :tangle "~/.emacs.d/lisp+/IDE/Python/index.el"
+  ;;; index.el --- Utility functions with tests -*- lexical-binding: t; -*-
+
+  ;;; Commentary:
+  ;; Simple utility functions with inline tests.
+  ;; Press F5 to run tests.
+
+  ;;; Code:
+
+  (defun my/add (a b)
+    "Add two numbers A and B."
+    (+ a b))
+
+  (defun my/multiply (a b)
+    "Multiply two numbers A and B."
+    (* a b))
+
+  (defun my/divide (a b)
+    "Divide A by B."
+    (if (zerop b)
+        (error "Cannot divide by zero")
+      (/ a b)))
+
+  ;; 测试框架
+  (defvar my/test-count 0 "Total number of tests.")
+  (defvar my/test-passed 0 "Number of passed tests.")
+
+  (defun my/test-reset ()
+    "Reset test counters."
+    (setq my/test-count 0
+          my/test-passed 0))
+
+  (defun my/assert-equal (expected actual description)
+    "Assert that EXPECTED equals ACTUAL with DESCRIPTION."
+    (setq my/test-count (1+ my/test-count))
+    (if (equal expected actual)
+        (progn
+          (setq my/test-passed (1+ my/test-passed))
+          (message "[PASS] Test %d: %s" my/test-count description))
+      (message "[FAIL] Test %d: %s - Expected %s, got %s"
+               my/test-count description expected actual)))
+
+  (defun my/assert-error (form description)
+    "Assert that FORM signals an error with DESCRIPTION."
+    (setq my/test-count (1+ my/test-count))
+    (condition-case err
+        (progn
+          (eval form)
+          (message "[FAIL] Test %d: %s - Expected error but none occurred"
+                   my/test-count description))
+      (error
+       (setq my/test-passed (1+ my/test-passed))
+       (message "[PASS] Test %d: %s" my/test-count description))))
+
+  ;; 运行所有测试
+  (defun my/run-tests ()
+    "Run all tests."
+    (interactive)
+    (my/test-reset)
+    (message "\n========================================")
+    (message "Running tests for my-utils.el")
+    (message "========================================\n")
+    
+    ;; 测试 add
+    (my/assert-equal 5 (my/add 2 3) "add(2, 3) == 5")
+    (my/assert-equal 0 (my/add -1 1) "add(-1, 1) == 0")
+    (my/assert-equal -5 (my/add -2 -3) "add(-2, -3) == -5")
+    
+    ;; 测试 multiply
+    (my/assert-equal 6 (my/multiply 2 3) "multiply(2, 3) == 6")
+    (my/assert-equal -6 (my/multiply -2 3) "multiply(-2, 3) == -6")
+    (my/assert-equal 0 (my/multiply 0 100) "multiply(0, 100) == 0")
+    
+    ;; 测试 divide
+    (my/assert-equal 2 (my/divide 6 3) "divide(6, 3) == 2")
+    (my/assert-error '(my/divide 5 0) "divide by zero raises error")
+    
+    ;; 测试结果
+    (message "\n========================================")
+    (message "Tests passed: %d/%d" my/test-passed my/test-count)
+    (message "========================================")
+    
+    (if (= my/test-passed my/test-count)
+        (message "\n[PASS] All tests passed!\n")
+      (message "\n[FAIL] %d test(s) failed!\n" 
+               (- my/test-count my/test-passed)))
+    
+    ;; 返回状态码
+    (if (= my/test-passed my/test-count) 0 1))
+
+  ;; 如果是批处理模式（命令行运行），自动执行测试
+  (when noninteractive
+    (let ((exit-code (my/run-tests)))
+      (kill-emacs exit-code)))
+
+  ;; Local Variables:
+  ;; compile-command: "c:/v/Emacs/emacs-30.2/bin/emacs.exe -q -batch -l index.el"
+  ;; End:
+#+end_src
+
+**** 结果
+按下 F5 即可获得测试结果
+
+#+begin_src org
+-*- mode: compilation; default-directory: "~/.emacs.d/lisp+/IDE/Python/" -*-
+Compilation started at Sat Nov  1 21:36:52
+
+c:/v/Emacs/emacs-30.2/bin/emacs.exe -q -batch -l index.el
+
+========================================
+Running tests for my-utils.el
+========================================
+
+[PASS] Test 1: add(2, 3) == 5
+[PASS] Test 2: add(-1, 1) == 0
+[PASS] Test 3: add(-2, -3) == -5
+[PASS] Test 4: multiply(2, 3) == 6
+[PASS] Test 5: multiply(-2, 3) == -6
+[PASS] Test 6: multiply(0, 100) == 0
+[PASS] Test 7: divide(6, 3) == 2
+[PASS] Test 8: divide by zero raises error
+
+========================================
+Tests passed: 8/8
+========================================
+
+[PASS] All tests passed!
+
+
+Compilation finished at Sat Nov  1 21:36:52, duration 0.16 s
+#+end_src
+
+*** Python
+
+**** 示例
+#+begin_src python :tangle "~/.emacs.d/lisp+/IDE/Python/index.py"
+# -*- coding: utf-8 -*-
+"""Simple calculator with tests."""
+
+import sys
+import io
+
+# 修复 Windows 控制台编码问题
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+
+
+def add(a, b):
+    return a + b
+
+
+def multiply(a, b):
+    return a * b
+
+
+# 简单的测试
+if __name__ == "__main__":
+    # 测试
+    assert add(2, 3) == 5, "Test failed: add(2, 3)"
+    assert add(-1, 1) == 0, "Test failed: add(-1, 1)"
+    assert multiply(2, 3) == 6, "Test failed: multiply(2, 3)"
+    assert multiply(-2, 3) == -6, "Test failed: multiply(-2, 3)"
+
+    print("✓ All tests passed!")  # 现在可以正常显示
+    print(f"2 + 3 = {add(2, 3)}")
+    print(f"2 * 3 = {multiply(2, 3)}")
+
+# Local Variables:
+# compile-command: "python index.py"
+# End:
+#+end_src
+
+**** 结果
+#+begin_src org
+-*- mode: compilation; default-directory: "~/.emacs.d/lisp+/IDE/Python/" -*-
+Compilation started at Sat Nov  1 21:44:42
+
+python index.py
+✓ All tests passed!
+2 + 3 = 5
+2 * 3 = 6
+
+Compilation finished at Sat Nov  1 21:44:42, duration 0.12 s
+#+end_src
+
+** 多文件协作
+
+#+begin_src makefile :tangle "~/.emacs.d/lisp+/IDE/Python/temp/project/Makefile"
+  .PHONY: run test clean all
+
+  # Python 解释器
+  PYTHON := python
+  ifeq ($(OS),Windows_NT)
+      PYTHON := python
+  else
+      PYTHON := python3
+  endif
+
+  # 设置环境变量
+  export PYTHONIOENCODING=utf-8
+
+  # 默认目标
+  all: test run
+
+  # 运行主程序
+  run:
+  	@echo ========================================
+  	@echo Running main program...
+  	@echo ========================================
+  	$(PYTHON) main.py
+
+  # 运行测试
+  test:
+  	@echo ========================================
+  	@echo Running tests...
+  	@echo ========================================
+  	$(PYTHON) test_utils.py
+
+  # 清理
+  clean:
+  	@echo Cleaning...
+  	@find . -name "*.pyc" -delete 2>/dev/null || del /S /Q *.pyc 2>nul || true
+  	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+  	@echo [DONE] Cleaned!
+
+  # 帮助信息
+  help:
+  	@echo Available targets:
+  	@echo   make test   - Run tests
+  	@echo   make run    - Run main program
+  	@echo   make all    - Run tests then main program
+  	@echo   make clean  - Clean build artifacts
+
+  # Local Variables:
+  # compile-command: "make test"
+  # End:
+#+end_src
+
+#+begin_src python :tangle "~/.emacs.d/lisp+/IDE/Python/temp/project/main.py"
+  # -*- coding: utf-8 -*-
+  """Main application."""
+
+  import sys
+  import io
+
+  # 修复 Windows 控制台编码问题
+  if sys.platform == 'win32':
+      try:
+          sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+          sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+      except AttributeError:
+          pass
+
+  from utils import add, multiply
+
+  def main():
+      """Main function."""
+      print("Calculator Demo")
+      print("=" * 40)
+      print(f"2 + 3 = {add(2, 3)}")
+      print(f"2 * 3 = {multiply(2, 3)}")
+      print("=" * 40)
+
+  if __name__ == "__main__":
+      main()
+
+  # Local Variables:
+  # compile-command: "make run"
+  # End:
+#+end_src
+
+#+begin_src python :tangle "~/.emacs.d/lisp+/IDE/Python/temp/project/utils.py"
+# -*- coding: utf-8 -*-
+"""Utility functions."""
+
+def add(a, b):
+    """Add two numbers."""
+    return a + b
+
+def multiply(a, b):
+    """Multiply two numbers."""
+    return a * b
+
+# Local Variables:
+# compile-command: "make test"
+# End:
+#+end_src
+
+#+begin_src python :tangle "~/.emacs.d/lisp+/IDE/Python/temp/project/test_utils.py"
+  # -*- coding: utf-8 -*-
+  """Tests for utils module."""
+
+  import sys
+  import io
+
+  # 修复 Windows 控制台编码问题
+  if sys.platform == 'win32':
+      try:
+          sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+          sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+      except AttributeError:
+          pass
+
+  from utils import add, multiply
+
+  def test_add():
+      """Test add function."""
+      assert add(2, 3) == 5, "Test failed: add(2, 3)"
+      assert add(-1, 1) == 0, "Test failed: add(-1, 1)"
+      print("[PASS] test_add passed")
+
+  def test_multiply():
+      """Test multiply function."""
+      assert multiply(2, 3) == 6, "Test failed: multiply(2, 3)"
+      assert multiply(-2, 3) == -6, "Test failed: multiply(-2, 3)"
+      print("[PASS] test_multiply passed")
+
+  if __name__ == "__main__":
+      print("Running tests...")
+      print("=" * 40)
+      
+      test_add()
+      test_multiply()
+      
+      print("=" * 40)
+      print("[PASS] All tests passed!")
+
+  # Local Variables:
+  # compile-command: "make test"
+  # End:
+#+end_src
+
+** 异类多文件协作
+
+#+begin_src makefile :tangle "~/.emacs.d/lisp+/IDE/Python/temp/complex_project/Makefile"
+  # 设置编码
+  export PYTHONIOENCODING=utf-8
+
+  # 定义 Emacs 路径
+  EMACS := c:/v/Emacs/emacs-30.2/bin/emacs.exe
+
+  # 强制使用 Windows cmd.exe
+  SHELL := cmd.exe
+  .SHELLFLAGS := /c
+
+  .PHONY: all python js elisp clean test help
+
+  # 默认：运行完整流水线
+  all: clean python js elisp
+  	@echo.
+  	@echo ========================================
+  	@echo Pipeline completed successfully!
+  	@echo ========================================
+  	@type output\report.txt
+
+  # 运行 Python 处理
+  python:
+  	@echo.
+  	@echo ========================================
+  	@echo Step 1: Python Processing
+  	@echo ========================================
+  	@python python/processor.py
+
+  # 运行 JavaScript 格式化
+  js: python
+  	@echo.
+  	@echo ========================================
+  	@echo Step 2: JavaScript Formatting
+  	@echo ========================================
+  	@node js/formatter.js
+
+  # 运行 Emacs Lisp 报告生成
+  elisp: js
+  	@echo.
+  	@echo ========================================
+  	@echo Step 3: Emacs Lisp Reporting
+  	@echo ========================================
+  	@"$(EMACS)" -q -batch -l elisp/reporter.el
+
+  # 只测试各个组件
+  test-python:
+  	@echo [TEST] Testing Python...
+  	@python python/processor.py
+
+  test-js:
+  	@echo [TEST] Testing JavaScript...
+  	@node js/formatter.js
+
+  test-elisp:
+  	@echo [TEST] Testing Emacs Lisp...
+  	@"$(EMACS)" -q -batch -l elisp/reporter.el
+
+  # 测试所有组件
+  test: test-python test-js test-elisp
+  	@echo [TEST] All components tested!
+
+  # 清理输出
+  clean:
+  	@if exist output rmdir /S /Q output
+  	@if not exist output mkdir output
+  	@echo [CLEAN] Output directory cleaned
+
+  # 帮助信息
+  help:
+  	@echo.
+  	@echo Available commands:
+  	@echo   make all     - Run full pipeline (Python -^> JS -^> Elisp)
+  	@echo   make python  - Run Python processing only
+  	@echo   make js      - Run JavaScript formatting only
+  	@echo   make elisp   - Run Emacs Lisp reporting only
+  	@echo   make test    - Test all components
+  	@echo   make clean   - Clean output directory
+  	@echo   make help    - Show this help
+  	@echo.
+
+  # Local Variables:
+  # compile-command: "make all"
+  # End:
+#+end_src
+
+#+begin_src text :tangle "~/.emacs.d/lisp+/IDE/Python/temp/complex_project/data/numbers.txt"
+10
+25
+15
+30
+20
+#+end_src
+
+#+begin_src python :tangle "~/.emacs.d/lisp+/IDE/Python/temp/complex_project/python/processor.py"
+# -*- coding: utf-8 -*-
+"""Process numbers data."""
+
+import sys
+import io
+import json
+import os
+
+# 修复 Windows 编码
+if sys.platform == 'win32':
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    except: pass
+
+def read_numbers(filename):
+    """Read numbers from file."""
+    with open(filename, 'r') as f:
+        return [int(line.strip()) for line in f if line.strip()]
+
+def calculate_stats(numbers):
+    """Calculate statistics."""
+    return {
+        'count': len(numbers),
+        'sum': sum(numbers),
+        'average': sum(numbers) / len(numbers) if numbers else 0,
+        'min': min(numbers) if numbers else 0,
+        'max': max(numbers) if numbers else 0,
+        'numbers': numbers
+    }
+
+def main():
+    """Main function."""
+    print("[Python] Processing data...")
+    
+    # 读取数据
+    input_file = os.path.join('data', 'numbers.txt')
+    numbers = read_numbers(input_file)
+    
+    # 计算统计
+    stats = calculate_stats(numbers)
+    
+    # 保存 JSON 供 JavaScript 使用
+    output_dir = 'output'
+    os.makedirs(output_dir, exist_ok=True)
+    
+    output_file = os.path.join(output_dir, 'stats.json')
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(stats, f, indent=2)
+    
+    print(f"[Python] Processed {stats['count']} numbers")
+    print(f"[Python] Output saved to: {output_file}")
+    
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+# Local Variables:
+# compile-command: "make python"
+# End:
+#+end_src
+
+#+begin_src js :tangle "~/.emacs.d/lisp+/IDE/Python/temp/complex_project/js/formatter.js"
+#!/usr/bin/env node
+/**
+ * Format statistics data
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+function readJSON(filename) {
+    const data = fs.readFileSync(filename, 'utf-8');
+    return JSON.parse(data);
+}
+
+function formatStats(stats) {
+    return {
+        summary: `Total: ${stats.count} numbers, Sum: ${stats.sum}, Avg: ${stats.average.toFixed(2)}`,
+        range: `Min: ${stats.min}, Max: ${stats.max}`,
+        details: stats.numbers.map((n, i) => `#${i + 1}: ${n}`),
+        timestamp: new Date().toISOString()
+    };
+}
+
+function main() {
+    console.log('[JavaScript] Formatting data...');
+    
+    // 读取 Python 生成的数据
+    const inputFile = path.join('output', 'stats.json');
+    const stats = readJSON(inputFile);
+    
+    // 格式化数据
+    const formatted = formatStats(stats);
+    
+    // 保存格式化结果供 Emacs Lisp 使用
+    const outputFile = path.join('output', 'formatted.json');
+    fs.writeFileSync(outputFile, JSON.stringify(formatted, null, 2), 'utf-8');
+    
+    console.log('[JavaScript] Formatted successfully');
+    console.log(`[JavaScript] Output saved to: ${outputFile}`);
+    
+    return 0;
+}
+
+// 运行
+if (require.main === module) {
+    process.exit(main());
+}
+
+// Local Variables:
+// compile-command: "make js"
+// End:
+#+end_src
+
+#+begin_src emacs-lisp :tangle "~/.emacs.d/lisp+/IDE/Python/temp/complex_project/elisp/reporter.el"
+  ;;; reporter.el --- Generate final report -*- lexical-binding: t; -*-
+
+  ;;; Commentary:
+  ;; Read formatted data and generate final report
+
+  ;;; Code:
+
+  (require 'json)
+
+  (defun reporter/read-json (filename)
+    "Read JSON from FILENAME."
+    (with-temp-buffer
+      (insert-file-contents filename)
+      (json-read)))
+
+  (defun reporter/generate-report (data)
+    "Generate report from DATA."
+    (let ((summary (alist-get 'summary data))
+          (range (alist-get 'range data))
+          (details (alist-get 'details data))
+          (timestamp (alist-get 'timestamp data)))
+      (concat
+       "========================================\n"
+       "       DATA PROCESSING REPORT\n"
+       "========================================\n\n"
+       "Generated: " timestamp "\n\n"
+       "SUMMARY\n"
+       "-------\n"
+       summary "\n\n"
+       "RANGE\n"
+       "-----\n"
+       range "\n\n"
+       "DETAILS\n"
+       "-------\n"
+       (mapconcat 'identity (append details nil) "\n")
+       "\n\n"
+       "========================================\n"
+       "Pipeline: Python -> JavaScript -> Emacs\n"
+       "========================================\n")))
+
+  (defun reporter/main ()
+    "Main function."
+    (interactive)
+    (message "[Emacs] Generating report...")
+    
+    ;; 读取 JavaScript 生成的数据
+    (let* ((input-file (expand-file-name "output/formatted.json"))
+           (data (reporter/read-json input-file))
+           (report (reporter/generate-report data))
+           (output-file (expand-file-name "output/report.txt")))
+      
+      ;; 保存报告
+      (with-temp-file output-file
+        (insert report))
+      
+      (message "[Emacs] Report generated: %s" output-file)
+      
+      ;; 显示报告
+      (when noninteractive
+        (princ report))
+      
+      ;; 在交互模式下打开报告
+      (unless noninteractive
+        (find-file output-file))
+      
+      0))
+
+  ;; 批处理模式自动运行
+  (when noninteractive
+    (reporter/main))
+
+  (provide 'reporter)
+
+  ;; Local Variables:
+  ;; compile-command: "make elisp"
+  ;; End:
+
+  ;;; reporter.el ends here
+#+end_src
+
+#+begin_src emacs-lisp :tangle "~/.emacs.d/lisp+/IDE/Python/temp/complex_project/readme.txt"
+多语言协作数据处理项目
+====================
+
+流程：
+  Python (处理数据) 
+    → JavaScript (格式化) 
+      → Emacs Lisp (生成报告)
+
+使用方法：
+  1. 在任意文件按 F5 运行完整流程
+  2. 或者在命令行运行：make all
+  3. 查看结果：output/report.txt
+
+文件说明：
+  - data/numbers.txt     : 原始数据
+  - python/processor.py  : 数据统计处理
+  - js/formatter.js      : 数据格式化
+  - elisp/reporter.el    : 报告生成
+  - output/              : 输出目录
+    - stats.json         : Python 输出
+    - formatted.json     : JavaScript 输出
+    - report.txt         : 最终报告
+
+Local Variables:
+compile-command: "make all"
+End:
+#+end_src
