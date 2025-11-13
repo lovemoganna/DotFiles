@@ -1,8 +1,19 @@
-#+TITLE: org2html-particle-theme
-#+AUTHOR: revolt
-#+DATE: <2025-10-16 Thu 23:47>
+# -*- mode: org; buffer-read-only: t; coding: utf-8; org-image-actual-width: nil; eval: (setq-local css-path (expand-file-name ".utils/css/org.css" user-emacs-directory)); -*-
+#+STARTUP: content align inlineimages indent hidestars
+#+PROPERTY: header-args :eval never :mkdirp yes :exports both
+#+OPTIONS: html-postamble:nil
+#+OPTIONS: ':t *:t -:t ::t <:t H:5 \n:nil ^:t arch:headline author:t c:nil
+#+OPTIONS: creator:nil d:(not LOGBOOK) date:t e:t email:nil f:t inline:t
+#+OPTIONS: *:nil toc:t num:nil
+#+OPTIONS: todo:t |:t tex:t
+#+LANGUAGE: en
+
 #+OPTIONS: toc:3 num:t ^:nil html-postamble:nil
 #+SETUPFILE: https://lovemoganna.github.io/DotFiles/Emacs/Org/org2html-particle-theme/theme-setup.org
+
+#+TITLE: org2html-particle-theme
+#+AUTHOR: revolt
+#+DATE: <2025-11-13 Thu 22:59>
 
 * 🚀 快速开始 - 5分钟搞定
 
