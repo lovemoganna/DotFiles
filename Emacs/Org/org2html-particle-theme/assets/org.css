@@ -401,6 +401,7 @@ body {
                 max-height var(--flip-transition-duration) var(--flip-transition-ease);
     will-change: opacity, max-height;
     margin-bottom: var(--space-xl);
+    max-width: 1000px;
 }
 
 /***** Level 2（默认/未设置 data-section-level） *****/
