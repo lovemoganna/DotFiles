@@ -1,0 +1,922 @@
+/* 优化后的语法高亮样式 v5.1 - 3D Enhanced Pro + 对称美学 */
+
+/* 基础变量 - 3D支持 + 对称配色 */
+:root {
+    /* 语法高亮颜色 - 深色主题 3D + 对称美学 */
+    --syntax-bg: #0a0e1a;
+    --syntax-bg-3d: linear-gradient(135deg, #0a0e1a 0%, #1e293b 50%, #0f172a 100%);
+    --syntax-text: #f1f5f9;
+    --syntax-text-glow: 0 0 8px rgba(241, 245, 249, 0.4);
+    --syntax-comment: #64748b;
+    --syntax-keyword: #6366f1;
+    --syntax-keyword-glow: 0 0 12px rgba(99, 102, 241, 0.5);
+    --syntax-string: #10b981;
+    --syntax-string-glow: 0 0 12px rgba(16, 185, 129, 0.5);
+    --syntax-number: #f59e0b;
+    --syntax-number-glow: 0 0 12px rgba(245, 158, 11, 0.5);
+    --syntax-function: #8b5cf6;
+    --syntax-function-glow: 0 0 12px rgba(139, 92, 246, 0.5);
+    --syntax-variable: #ec4899;
+    --syntax-variable-glow: 0 0 12px rgba(236, 72, 153, 0.5);
+    --syntax-type: #06b6d4;
+    --syntax-type-glow: 0 0 12px rgba(6, 182, 212, 0.5);
+    --syntax-operator: #f97316;
+    --syntax-operator-glow: 0 0 12px rgba(249, 115, 22, 0.5);
+    --syntax-error: #ef4444;
+    --syntax-error-glow: 0 0 15px rgba(239, 68, 68, 0.6);
+    --syntax-warning: #eab308;
+    --syntax-warning-glow: 0 0 12px rgba(234, 179, 8, 0.5);
+    
+    /* 浅色主题 3D + 对称配色 */
+    --syntax-bg-light: #ffffff;
+    --syntax-bg-light-3d: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+    --syntax-text-light: #1e293b;
+    --syntax-text-light-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+    --syntax-comment-light: #64748b;
+    --syntax-keyword-light: #4338ca;
+    --syntax-string-light: #047857;
+    --syntax-number-light: #d97706;
+    --syntax-function-light: #7c3aed;
+    --syntax-variable-light: #be185d;
+    --syntax-type-light: #0369a1;
+    --syntax-operator-light: #ea580c;
+    
+    /* 3D效果变量 - 对称深度 */
+    --syntax-depth: 3px;
+    --syntax-hover-depth: 8px;
+    --syntax-perspective: 1200px;
+    --syntax-transform-style: preserve-3d;
+    --syntax-transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* 对称阴影系统 */
+    --syntax-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --syntax-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --syntax-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
+    --syntax-shadow-3d: 0 12px 24px rgba(0, 0, 0, 0.2),
+			0 6px 12px rgba(0, 0, 0, 0.15),
+			0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 基础样式 - 3D增强 + 对称布局 */
+body {
+    color: var(--syntax-text-light);
+    background: var(--syntax-bg-light-3d);
+    text-shadow: var(--syntax-text-light-shadow);
+    transform-style: var(--syntax-transform-style);
+    font-feature-settings: 'liga' 1, 'kern' 1;
+}
+
+/* 深色模式适配 - 3D对称 */
+@media (prefers-color-scheme: dark) {
+    body {
+	color: var(--syntax-text);
+	background: var(--syntax-bg-3d);
+	text-shadow: var(--syntax-text-glow);
+    }
+}
+
+/* 语法高亮类 - 3D性能优化版本 + 对称美学 */
+.org-keyword { 
+    color: var(--syntax-keyword-light);
+    font-weight: 600;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(var(--syntax-hover-depth));
+	text-shadow: var(--syntax-keyword-glow);
+	filter: brightness(1.1);
+    }
+}
+
+.org-string { 
+    color: var(--syntax-string-light);
+    font-style: italic;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(var(--syntax-hover-depth));
+	text-shadow: var(--syntax-string-glow);
+	filter: brightness(1.1);
+    }
+}
+
+.org-comment { 
+    color: var(--syntax-comment-light);
+    font-style: italic;
+    opacity: 0.8;
+    transform-style: var(--syntax-transform-style);
+    transition: opacity 0.3s ease;
+    
+    &:hover {
+	opacity: 1;
+	transform: translateZ(2px);
+    }
+}
+
+.org-comment-delimiter { 
+    color: var(--syntax-comment-light);
+    opacity: 0.6;
+    transform-style: var(--syntax-transform-style);
+}
+
+.org-function-name { 
+    color: var(--syntax-function-light);
+    font-weight: 600;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(var(--syntax-hover-depth)) scale(1.02);
+	text-shadow: var(--syntax-function-glow);
+    }
+}
+
+.org-variable-name { 
+    color: var(--syntax-variable-light);
+    font-weight: 500;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(var(--syntax-hover-depth));
+	text-shadow: var(--syntax-variable-glow);
+    }
+}
+
+.org-type { 
+    color: var(--syntax-type-light);
+    font-weight: 600;
+    font-variant: small-caps;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(var(--syntax-hover-depth));
+	text-shadow: var(--syntax-type-glow);
+    }
+}
+
+.org-constant { 
+    color: var(--syntax-number-light);
+    font-weight: 700;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(var(--syntax-hover-depth)) scale(1.05);
+	text-shadow: var(--syntax-number-glow);
+    }
+}
+
+.org-builtin { 
+    color: var(--syntax-keyword-light);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	text-decoration-color: currentColor;
+	transform: translateZ(4px);
+    }
+}
+
+.org-preprocessor { 
+    color: var(--syntax-operator-light);
+    font-weight: 600;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(var(--syntax-hover-depth));
+	text-shadow: var(--syntax-operator-glow);
+    }
+}
+
+.org-doc { 
+    color: var(--syntax-string-light);
+    font-style: italic;
+    opacity: 0.9;
+    transform-style: var(--syntax-transform-style);
+    
+    &:hover {
+	opacity: 1;
+	transform: translateZ(3px);
+    }
+}
+
+.org-warning-1 { 
+    color: var(--syntax-warning);
+    font-weight: 600;
+    text-shadow: var(--syntax-warning-glow);
+    animation: pulseWarning3D 2.5s infinite;
+    transform-style: var(--syntax-transform-style);
+}
+
+.org-error { 
+    color: var(--syntax-error);
+    font-weight: 700;
+    text-shadow: var(--syntax-error-glow);
+    animation: pulseError3D 1.8s infinite;
+    transform-style: var(--syntax-transform-style);
+}
+
+/* 深色模式下的3D语法高亮 - 对称配色 */
+@media (prefers-color-scheme: dark) {
+    .org-keyword { 
+	color: var(--syntax-keyword);
+	
+	&:hover {
+	    text-shadow: var(--syntax-keyword-glow);
+	}
+    }
+    
+    .org-string { 
+	color: var(--syntax-string);
+	
+	&:hover {
+	    text-shadow: var(--syntax-string-glow);
+	}
+    }
+    
+    .org-comment { color: var(--syntax-comment); }
+    .org-comment-delimiter { color: var(--syntax-comment); }
+    
+    .org-function-name { 
+	color: var(--syntax-function);
+	
+	&:hover {
+	    text-shadow: var(--syntax-function-glow);
+	}
+    }
+    
+    .org-variable-name { 
+	color: var(--syntax-variable);
+	
+	&:hover {
+	    text-shadow: var(--syntax-variable-glow);
+	}
+    }
+    
+    .org-type { 
+	color: var(--syntax-type);
+	
+	&:hover {
+	    text-shadow: var(--syntax-type-glow);
+	}
+    }
+    
+    .org-constant { 
+	color: var(--syntax-number);
+	
+	&:hover {
+	    text-shadow: var(--syntax-number-glow);
+	}
+    }
+    
+    .org-builtin { color: var(--syntax-keyword); }
+    
+    .org-preprocessor { 
+	color: var(--syntax-operator);
+	
+	&:hover {
+	    text-shadow: var(--syntax-operator-glow);
+	}
+    }
+    
+    .org-doc { color: var(--syntax-string); }
+}
+
+/* Org 模式特定样式 - 3D增强 + 对称层次 */
+.org-level-1 { 
+    color: #3b82f6; 
+    font-weight: 700;
+    font-size: 1.2em;
+    transform-style: var(--syntax-transform-style);
+    text-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) rotateY(3deg) translateZ(8px);
+	text-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+    }
+}
+
+.org-level-2 { 
+    color: #ef4444; 
+    font-weight: 650;
+    font-size: 1.15em;
+    transform-style: var(--syntax-transform-style);
+    text-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) rotateY(-3deg) translateZ(8px);
+	text-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    }
+}
+
+.org-level-3 { 
+    color: #8b5cf6; 
+    font-weight: 600;
+    font-size: 1.1em;
+    transform-style: var(--syntax-transform-style);
+    text-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) rotateY(2deg) translateZ(6px);
+	text-shadow: 0 0 18px rgba(139, 92, 246, 0.6);
+    }
+}
+
+.org-level-4 { 
+    color: #10b981; 
+    font-weight: 600;
+    transform-style: var(--syntax-transform-style);
+    text-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    
+    &:hover {
+	transform: translateZ(4px);
+	text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+    }
+}
+
+.org-level-5 { 
+    color: #f59e0b; 
+    font-weight: 600;
+    transform-style: var(--syntax-transform-style);
+    text-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+    
+    &:hover {
+	transform: translateZ(4px);
+	text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+    }
+}
+
+.org-level-6 { 
+    color: #06b6d4; 
+    font-weight: 600;
+    transform-style: var(--syntax-transform-style);
+    text-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
+    
+    &:hover {
+	transform: translateZ(4px);
+	text-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+    }
+}
+
+/* 3D任务状态 - 对称美学 */
+.org-todo {
+    background: linear-gradient(135deg, var(--syntax-error) 0%, #dc2626 50%, #b91c1c 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 
+	var(--syntax-shadow-md),
+	inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform-style: var(--syntax-transform-style);
+    transition: var(--syntax-transition);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+	transform: translateX(-100%);
+	transition: transform 0.6s ease;
+    }
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(6px) scale(1.08);
+	box-shadow: 
+	    var(--syntax-shadow-lg),
+	    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+	    0 0 20px rgba(239, 68, 68, 0.4);
+	
+	&::before {
+	    transform: translateX(100%);
+	}
+    }
+}
+
+.org-done {
+    background: linear-gradient(135deg, var(--syntax-string-light) 0%, #059669 50%, #047857 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 
+	var(--syntax-shadow-md),
+	inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform-style: var(--syntax-transform-style);
+    transition: var(--syntax-transition);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+	transform: translateX(-100%);
+	transition: transform 0.6s ease;
+    }
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(6px) scale(1.08);
+	box-shadow: 
+	    var(--syntax-shadow-lg),
+	    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+	    0 0 20px rgba(16, 185, 129, 0.4);
+	
+	&::before {
+	    transform: translateX(100%);
+	}
+    }
+}
+
+/* 3D标签 - 对称设计 */
+.org-tag {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
+    color: #475569;
+    padding: 3px 10px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 
+	var(--syntax-shadow-sm),
+	inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    transform-style: var(--syntax-transform-style);
+    transition: var(--syntax-transition);
+    border: 1px solid rgba(71, 85, 105, 0.1);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(4px) scale(1.05);
+	background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #94a3b8 100%);
+	box-shadow: var(--syntax-shadow-md);
+	border-color: rgba(71, 85, 105, 0.2);
+    }
+}
+
+/* 3D链接样式 - 对称动画 */
+.org-link {
+    color: var(--syntax-keyword-light);
+    text-decoration: none;
+    border-bottom: 1px dotted currentColor;
+    position: relative;
+    transform-style: var(--syntax-transform-style);
+    transition: var(--syntax-transition);
+    
+    &::after {
+	content: '';
+	position: absolute;
+	bottom: -3px;
+	left: 0;
+	width: 100%;
+	height: 2px;
+	background: linear-gradient(90deg, 
+				    currentColor 0%, 
+				    var(--syntax-function-light) 50%, 
+				    currentColor 100%);
+	background-size: 200% 100%;
+	transform: scaleX(0) translateZ(2px);
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	border-radius: 1px;
+    }
+    
+    &:hover {
+	border-bottom-style: solid;
+	transform: perspective(var(--syntax-perspective)) translateZ(4px);
+	text-shadow: 0 0 12px currentColor;
+	
+	&::after {
+	    transform: scaleX(1) translateZ(2px);
+	    animation: linkGradientFlow 1.5s ease infinite;
+	}
+    }
+}
+
+/* 3D代码块样式 - 对称美学 */
+.org-code {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+    color: var(--syntax-error);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-family: var(--font-mono-primary);
+    font-size: 0.9em;
+    font-weight: 500;
+    box-shadow: 
+	inset 0 1px 3px rgba(0, 0, 0, 0.1),
+	0 1px 0 rgba(255, 255, 255, 0.9);
+    transform-style: var(--syntax-transform-style);
+    transition: var(--syntax-transition);
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(3px) scale(1.02);
+	background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
+	box-shadow: var(--syntax-shadow-sm);
+	border-color: var(--syntax-keyword-light);
+    }
+}
+
+.org-verbatim {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+    color: #92400e;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-family: var(--font-mono-primary);
+    font-size: 0.9em;
+    font-weight: 500;
+    box-shadow: 
+	inset 0 1px 3px rgba(146, 64, 14, 0.1),
+	0 1px 0 rgba(255, 255, 255, 0.9);
+    transform-style: var(--syntax-transform-style);
+    transition: var(--syntax-transition);
+    border: 1px solid rgba(252, 211, 77, 0.6);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(3px) scale(1.02);
+	background: linear-gradient(135deg, #fde68a 0%, #fcd34d 50%, #f59e0b 100%);
+	box-shadow: var(--syntax-shadow-sm);
+	border-color: #d97706;
+    }
+}
+
+/* 3D表格样式优化 - 对称布局 */
+.org-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: 2rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--syntax-shadow-3d);
+    transform-style: var(--syntax-transform-style);
+    transition: var(--syntax-transition);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    
+    &:hover {
+	transform: perspective(var(--syntax-perspective)) translateZ(8px);
+	box-shadow: 
+	    0 16px 32px rgba(0, 0, 0, 0.2),
+	    0 8px 16px rgba(0, 0, 0, 0.15),
+	    0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.org-table th {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    color: white;
+    font-weight: 700;
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+    transform-style: var(--syntax-transform-style);
+    position: relative;
+    
+    &::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+	transform: translateX(-100%);
+	transition: transform 0.6s ease;
+    }
+    
+    &:hover {
+	background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+	transform: translateZ(4px);
+	
+	&::before {
+	    transform: translateX(100%);
+	}
+    }
+}
+
+.org-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    transition: var(--syntax-transition);
+    transform-style: var(--syntax-transform-style);
+    background: rgba(255, 255, 255, 0.5);
+    
+    &:hover {
+	background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.03) 100%);
+	transform: translateZ(2px);
+	box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.1);
+    }
+}
+
+.org-table tr:hover {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    transform: translateZ(3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.org-table tr:nth-child(even) {
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.5) 0%, rgba(241, 245, 249, 0.3) 100%);
+}
+
+/* 动画效果 - 对称平衡 */
+@keyframes pulseWarning3D {
+    0%, 100% {
+	opacity: 1;
+	transform: translateZ(0) scale(1);
+	text-shadow: var(--syntax-warning-glow);
+    }
+    33% {
+	opacity: 0.8;
+	transform: translateZ(3px) scale(1.02);
+	text-shadow: 
+	    var(--syntax-warning-glow),
+	    0 0 20px rgba(234, 179, 8, 0.6);
+    }
+    66% {
+	opacity: 0.9;
+	transform: translateZ(1px) scale(1.01);
+    }
+}
+
+@keyframes pulseError3D {
+    0%, 100% {
+	opacity: 1;
+	transform: translateZ(0) scale(1);
+	text-shadow: var(--syntax-error-glow);
+    }
+    25% {
+	opacity: 0.9;
+	transform: translateZ(4px) scale(1.03);
+	text-shadow: 
+	    var(--syntax-error-glow),
+	    0 0 25px rgba(239, 68, 68, 0.8);
+    }
+    50% {
+	opacity: 0.8;
+	transform: translateZ(6px) scale(1.05);
+	text-shadow: 
+	    var(--syntax-error-glow),
+	    0 0 30px rgba(239, 68, 68, 0.9);
+    }
+    75% {
+	opacity: 0.9;
+	transform: translateZ(2px) scale(1.01);
+    }
+}
+
+@keyframes linkGradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer3D {
+    0% { 
+	transform: translateX(-100%) rotateZ(45deg); 
+	opacity: 0;
+    }
+    50% {
+	opacity: 1;
+    }
+    100% { 
+	transform: translateX(100%) rotateZ(45deg); 
+	opacity: 0;
+    }
+}
+
+/* 响应式优化 - 对称适配 */
+@media (max-width: 768px) {
+    .org-table {
+	font-size: 0.9rem;
+	
+	&:hover {
+	    transform: translateZ(4px);
+	}
+    }
+    
+    .org-table th,
+    .org-table td {
+	padding: 10px 12px;
+	
+	&:hover {
+	    transform: translateZ(1px);
+	}
+    }
+    
+    .org-level-1:hover,
+    .org-level-2:hover,
+    .org-level-3:hover {
+	transform: translateZ(4px);
+    }
+    
+    .org-todo,
+    .org-done {
+	font-size: 0.75rem;
+	padding: 3px 8px;
+    }
+}
+
+/* 减少动画模式 - 无障碍支持 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+	animation: none !important;
+	transition: none !important;
+	transform: none !important;
+    }
+    
+    .org-warning-1,
+    .org-error {
+	animation: none;
+    }
+    
+    .org-todo:hover,
+    .org-done:hover,
+    .org-table:hover {
+	transform: none;
+    }
+}
+
+/* 打印优化 - 对称布局 */
+@media print {
+    .org-keyword,
+    .org-string,
+    .org-comment,
+    .org-function-name,
+    .org-variable-name,
+    .org-type,
+    .org-constant {
+	color: #000000 !important;
+	text-shadow: none !important;
+	transform: none !important;
+	background: transparent !important;
+    }
+    
+    .org-todo,
+    .org-done {
+	background: transparent !important;
+	color: #000000 !important;
+	border: 2px solid #000000 !important;
+	box-shadow: none !important;
+	transform: none !important;
+    }
+    
+    .org-table {
+	box-shadow: none !important;
+	transform: none !important;
+	border: 2px solid #000000 !important;
+    }
+}
+
+/* 保持原有的语法高亮类以确保兼容性 */
+.org-alert-high { 
+    color: #f59e0b; 
+    font-weight: 700;
+    text-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+}
+
+.org-alert-low { 
+    color: #3b82f6;
+    font-weight: 500;
+}
+
+.org-alert-moderate { 
+    color: #eab308; 
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+}
+
+.org-alert-normal { 
+    color: inherit;
+}
+
+.org-alert-saved-fringe { 
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+.org-alert-trivial { 
+    color: #8b5cf6;
+    font-style: italic;
+}
+
+.org-alert-urgent { 
+    color: #dc2626; 
+    font-weight: 700;
+    text-shadow: 0 0 15px rgba(220, 38, 38, 0.7);
+    animation: pulseUrgent3D 1.2s infinite;
+}
+
+@keyframes pulseUrgent3D {
+    0%, 100% {
+	opacity: 1;
+	transform: scale(1) translateZ(0);
+    }
+    50% {
+	opacity: 0.7;
+	transform: scale(1.05) translateZ(5px);
+    }
+}
+
+/* Fix indent Question - 3D对称 */
+.outline-text-2 { 
+    padding: 0 15px;
+    transform-style: var(--syntax-transform-style);
+    margin-left: 10px;
+    border-left: 3px solid rgba(99, 102, 241, 0.2);
+}
+
+.outline-text-3 { 
+    padding: 0 15px;
+    transform-style: var(--syntax-transform-style);
+    margin-left: 20px;
+    border-left: 2px solid rgba(139, 92, 246, 0.2);
+}
+
+.outline-text-4 { 
+    padding: 0 15px;
+    transform-style: var(--syntax-transform-style);
+    margin-left: 30px;
+    border-left: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.outline-text-5 { 
+    padding: 0 15px;
+    transform-style: var(--syntax-transform-style);
+    margin-left: 40px;
+    border-left: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* 3D性能优化 - GPU加速 */
+.syntax-3d-optimized {
+    will-change: transform, text-shadow;
+    backface-visibility: hidden;
+    perspective: var(--syntax-perspective);
+}
+
+/* GPU加速优化 */
+.org-level-1,
+.org-level-2,
+.org-level-3,
+.org-todo,
+.org-done,
+.org-table,
+.org-keyword,
+.org-function-name {
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* 暗色模式表格优化 */
+@media (prefers-color-scheme: dark) {
+    .org-table {
+	background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+    
+    .org-table th {
+	background: linear-gradient(135deg, #4338ca 0%, #6d28d9 50%, #7c3aed 100%);
+    }
+    
+    .org-table td {
+	background: rgba(30, 41, 59, 0.5);
+	border-bottom-color: #334155;
+	
+	&:hover {
+	    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+	}
+    }
+    
+    .org-table tr:nth-child(even) {
+	background: linear-gradient(135deg, rgba(15, 23, 42, 0.5) 0%, rgba(30, 41, 59, 0.3) 100%);
+    }
+    
+    .org-code {
+	background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+	color: #10b981;
+	border-color: rgba(71, 85, 105, 0.6);
+    }
+    
+    .org-verbatim {
+	background: linear-gradient(135deg, #451a03 0%, #92400e 50%, #c2410c 100%);
+	color: #fcd34d;
+	border-color: rgba(194, 65, 12, 0.6);
+    }
+}
