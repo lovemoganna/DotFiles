@@ -13,7 +13,7 @@
 # 1. 核心资源引用 (CSS & Fonts)
 # -----------------------------------------------------------
 #+HTML_HEAD: <link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-screen-webfont/style.css" media="print" onload="this.media='all'">
-#+HTML_HEAD: <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+#+HTML_HEAD: <link href="https://fonts.googleapis.com/css2?family=victor+Mono:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 #+HTML_HEAD: <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okadia.min.css" rel="stylesheet" />
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://lovemoganna.github.io/DotFiles/Emacs/Org/theme/ray-mode-theme//org.css" />
  
