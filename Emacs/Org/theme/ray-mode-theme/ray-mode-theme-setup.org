@@ -1,0 +1,87 @@
+#+HTML_DOCTYPE: html5
+#+HTML_HEAD: <meta name="viewport" content="width=device-width, initial-scale=1">
+ 
+# =====================================================================
+# RayMode Ultimate v3.5 - Org-mode Theme Configuration
+# 修复说明：
+# 1. ✅ 代码块语法高亮现已完全支持 (Prism Token 颜色已添加到 CSS)
+# 2. ✅ TOC 目录显示不全问题已修复 (max-height 改为 80vh，动态生成 TOC)
+# 3. ✅ 所有原有功能保留 (快捷键、折叠、搜索等)
+# =====================================================================
+ 
+# -----------------------------------------------------------
+# 1. 核心资源引用 (CSS & Fonts)
+# -----------------------------------------------------------
+#+HTML_HEAD: <link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-screen-webfont/style.css" media="print" onload="this.media='all'">
+#+HTML_HEAD: <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+#+HTML_HEAD: <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okadia.min.css" rel="stylesheet" />
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://lovemoganna.github.io/DotFiles/Emacs/Org/theme/ray-mode-theme//org.css" />
+ 
+# -----------------------------------------------------------
+# 2. 注入 UI 组件结构 (这些将直接插入到 Body 顶部)
+# -----------------------------------------------------------
+#+BEGIN_EXPORT html
+<!-- Cmd+K Search Overlay -->
+<div id="cmd-k-overlay">
+    <div id="cmd-k-panel">
+        <input id="cmd-k-input" type="text" placeholder="Search headers..." autocomplete="off">
+        <div id="cmd-k-results"></div>
+    </div>
+</div>
+
+<!-- Image Lightbox -->
+<div id="lightbox" style="position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;z-index:9001;justify-content:center;align-items:center;cursor:zoom-out">
+    <img src="" style="max-width:90vw;max-height:90vh;box-shadow:0 0 50px black" alt="Zoomed Image">
+</div>
+
+<!-- Table of Contents (TOC) -->
+<div id="toc-overlay">
+    <div id="toc-btn" title="Toggle TOC (press 't')">≡</div>
+    <div id="toc-list"></div>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toast"></div>
+#+END_EXPORT
+
+# -----------------------------------------------------------
+# 3. 外部 JS 库 (Mermaid & MathJax)
+# -----------------------------------------------------------
+#+HTML_HEAD: <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+#+HTML_HEAD: <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ 
+# -----------------------------------------------------------
+# 4. PrismJS 设置 (Manual Mode)
+# 重要：使用 manual 模式让 JS 完全控制高亮时机
+# -----------------------------------------------------------
+#+HTML_HEAD: <script>window.Prism = { manual: true };</script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-lisp.min.js"></script>
+ 
+# -----------------------------------------------------------
+# 5. RayMode 核心交互脚本 (最后加载)
+# -----------------------------------------------------------
+#+HTML_HEAD: <script src="https://lovemoganna.github.io/DotFiles/Emacs/Org/theme/ray-mode-theme//org.js"></script>
+ 
+# =====================================================================
+# 使用方法：
+# 在你的 .org 文件顶部添加：
+# #+include: "C:/Users/luoyu/AppData/Roaming/Documents/notes/.templates/ray-mode/ray-mode-theme-local-setup.org"
+#
+# 快捷键说明：
+# - Cmd/Ctrl + K : 打开搜索
+# - j/k          : 向下/向上滚动
+# - n/p          : 下一个章节/上一个章节
+# - g/G          : 跳到顶部/底部
+# - t            : 切换目录 (TOC)
+# - f/F          : 折叠/展开所有章节
+# - Tab          : 折叠当前章节
+# - 点击标题     : 折叠/展开该章节
+# - 点击图片     : 放大查看
+# =====================================================================
