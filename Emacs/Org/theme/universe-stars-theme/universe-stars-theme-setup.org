@@ -1,0 +1,12 @@
+#+HTML_HEAD: <link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-screen-webfont/style.css" media="print" onload="this.media='all'">
+#+HTML_HEAD: <link href="https://fonts.googleapis.com/css2?family=victor+Mono:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+#+HTML_HEAD: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+#+HTML_HEAD: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://lovemoganna.github.io/DotFiles/Emacs/Org/theme/universe-stars-theme/org.css" />
+
+#+HTML_HEAD: <script src="https://unpkg.com/three@0.159.0/build/three.min.js" crossorigin="anonymous"></script>
+#+HTML_HEAD: <script src="https://lovemoganna.github.io/DotFiles/Emacs/Org/theme/universe-stars-theme/org.js"></script>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://lovemoganna.github.io/DotFiles/Emacs/Org/theme/universe-stars-theme/org.js" />
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+#+HTML_HEAD: <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
