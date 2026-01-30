@@ -881,6 +881,7 @@ h5 {
     color: var(--color-accent-info);
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-medium);
+	margin-left: var(--space-md);
     line-height: 1.5;
     scroll-margin-top: 140px;
 }
